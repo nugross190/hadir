@@ -32,6 +32,7 @@ from models import *  # ensures all models are registered
 from routers.auth import router as auth_router
 from routers.totp import router as totp_router
 from routers.attendance import router as attendance_router
+from routers.reports import router as reports_router
 
 FRONTEND_DIR = Path(__file__).resolve().parent / "frontend"
 
@@ -63,6 +64,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(totp_router)
 app.include_router(attendance_router)
+app.include_router(reports_router)
 
 
 # ── Core Endpoints ──────────────────────────────────────────────────────────
