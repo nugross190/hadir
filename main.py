@@ -33,6 +33,7 @@ from routers.auth import router as auth_router
 from routers.totp import router as totp_router
 from routers.attendance import router as attendance_router
 from routers.reports import router as reports_router
+from routers.dashboard import router as dashboard_router
 
 FRONTEND_DIR = Path(__file__).resolve().parent / "frontend"
 
@@ -65,6 +66,7 @@ app.include_router(auth_router)
 app.include_router(totp_router)
 app.include_router(attendance_router)
 app.include_router(reports_router)
+app.include_router(dashboard_router)
 
 
 # ── Core Endpoints ──────────────────────────────────────────────────────────
@@ -79,6 +81,9 @@ def root():
 def display():
     """Serve the bell PC TOTP display page."""
     return FileResponse(FRONTEND_DIR / "display.html")
+@app.get("/dashboard")
+def dashboard_page():
+    return FileResponse(FRONTEND_DIR / "dashboard.html")
 
 
 @app.get("/api")
