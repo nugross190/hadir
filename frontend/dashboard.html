@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>HADIR — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F6F5F0;
+  --bg-card: #FFFFFF;
+  --bg-active: #EBF5EE;
+  --bg-danger: #FEF0EF;
+  --text: #1A1A18;
+  --text-2: #5C5B57;
+  --text-3: #9C9A92;
+  --border: #E5E3DB;
+  --accent: #1B7A43;
+  --accent-light: #D4EDDB;
+  --accent-dark: #145C32;
+  --danger: #C53030;
+  --danger-light: #FED7D7;
+  --warning: #B7791F;
+  --warning-light: #FEFCBF;
+  --info: #2B6CB0;
+  --info-light: #BEE3F8;
+  --purple: #6B46C1;
+  --purple-light: #E9D8FD;
+  --radius: 14px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-lg: 0 4px 14px rgba(0,0,0,0.08);
+  --font: 'DM Sans', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Top Bar ─────────────────────────────────── */
+.top-bar {
+  position: sticky; top: 0; z-index: 10;
+  background: var(--accent); color: #fff;
+  padding: 16px 20px;
+  display: flex; align-items: center; gap: 12px;
+}
+.top-bar h1 { font-size: 18px; font-weight: 600; letter-spacing: .5px; }
+.top-bar .subtitle { font-size: 12px; opacity: .75; margin-top: 2px; }
+
+/* ── Tab Nav ─────────────────────────────────── */
+.tab-nav {
+  display: flex; background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 56px; z-index: 9;
+}
+.tab-btn {
+  flex: 1; padding: 12px 8px; text-align: center;
+  font-family: var(--font); font-size: 13px; font-weight: 600;
+  color: var(--text-3); background: none; border: none;
+  border-bottom: 2.5px solid transparent;
+  cursor: pointer; transition: all .15s;
+}
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-btn:active { background: var(--bg); }
+
+/* ── Panels ──────────────────────────────────── */
+.tab-panel { display: none; padding: 16px 16px 32px; animation: fadeIn .2s ease; }
+.tab-panel.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── Cards ───────────────────────────────────── */
+.card {
+  background: var(--bg-card); border-radius: var(--radius);
+  border: 1px solid var(--border); padding: 20px;
+  margin-bottom: 12px; box-shadow: var(--shadow);
+}
+.card-flat {
+  background: var(--bg-card); border-radius: var(--radius);
+  border: 1px solid var(--border); overflow: hidden;
+  margin-bottom: 12px; box-shadow: var(--shadow);
+}
+.card-title {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 1.2px; color: var(--text-3); margin-bottom: 14px;
+}
+
+/* ── Stat Grid ───────────────────────────────── */
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stat-card {
+  background: var(--bg-card); border-radius: var(--radius-sm);
+  border: 1px solid var(--border); padding: 14px 16px;
+  box-shadow: var(--shadow);
+}
+.stat-value {
+  font-family: var(--mono); font-size: 28px; font-weight: 700;
+  color: var(--text); line-height: 1;
+}
+.stat-label { font-size: 12px; color: var(--text-2); margin-top: 4px; font-weight: 500; }
+.stat-card.accent { border-left: 3px solid var(--accent); }
+.stat-card.accent .stat-value { color: var(--accent); }
+.stat-card.warning { border-left: 3px solid var(--warning); }
+.stat-card.warning .stat-value { color: var(--warning); }
+.stat-card.danger { border-left: 3px solid var(--danger); }
+.stat-card.danger .stat-value { color: var(--danger); }
+.stat-card.info { border-left: 3px solid var(--info); }
+.stat-card.info .stat-value { color: var(--info); }
+
+/* ── Coverage Bar ────────────────────────────── */
+.coverage-bar-bg {
+  height: 8px; background: var(--border); border-radius: 4px;
+  overflow: hidden; margin-top: 10px;
+}
+.coverage-bar-fill {
+  height: 100%; background: var(--accent); border-radius: 4px;
+  transition: width .5s ease;
+}
+.coverage-label {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 4px;
+}
+.coverage-label .pct {
+  font-family: var(--mono); font-size: 24px; font-weight: 700; color: var(--accent);
+}
+.coverage-label .detail { font-size: 12px; color: var(--text-2); }
+
+/* ── Status Pills Row ────────────────────────── */
+.status-row {
+  display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px;
+}
+.status-pill {
+  font-size: 12px; font-weight: 600; padding: 4px 10px;
+  border-radius: 20px; white-space: nowrap;
+}
+.status-pill.hadir { background: var(--accent-light); color: var(--accent-dark); }
+.status-pill.tidak_hadir { background: var(--danger-light); color: var(--danger); }
+.status-pill.terlambat { background: var(--warning-light); color: var(--warning); }
+.status-pill.sakit { background: var(--warning-light); color: var(--warning); }
+.status-pill.izin { background: var(--purple-light); color: var(--purple); }
+.status-pill.alpa { background: var(--danger-light); color: var(--danger); }
+
+/* ── Staff Activity ──────────────────────────── */
+.activity-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.activity-item:last-child { border-bottom: none; }
+.activity-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  flex-shrink: 0;
+}
+.activity-dot.active { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+.activity-dot.done { background: var(--text-3); }
+.activity-name { font-size: 14px; font-weight: 500; flex: 1; }
+.activity-time { font-size: 12px; font-family: var(--mono); color: var(--text-3); }
+
+/* ── Weekly Trend ────────────────────────────── */
+.trend-chart {
+  display: flex; align-items: flex-end; gap: 6px;
+  height: 100px; padding-top: 8px;
+}
+.trend-bar-wrapper {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; gap: 4px; height: 100%;
+}
+.trend-bar-track {
+  flex: 1; width: 100%; position: relative;
+  display: flex; align-items: flex-end;
+}
+.trend-bar {
+  width: 100%; border-radius: 4px 4px 0 0;
+  background: var(--accent-light); min-height: 4px;
+  transition: height .4s ease;
+  position: relative;
+}
+.trend-bar:hover { background: var(--accent); }
+.trend-bar-label {
+  font-size: 10px; color: var(--text-3); font-weight: 500;
+  font-family: var(--mono);
+}
+.trend-pct {
+  font-size: 9px; font-weight: 600; color: var(--accent-dark);
+  text-align: center;
+}
+
+/* ── Class Table ─────────────────────────────── */
+.class-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+}
+.class-row:last-child { border-bottom: none; }
+.class-name { font-size: 14px; font-weight: 500; min-width: 70px; }
+.class-bar-bg {
+  flex: 1; height: 6px; background: var(--border); border-radius: 3px;
+  overflow: hidden;
+}
+.class-bar-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width .4s ease; }
+.class-count { font-size: 12px; font-family: var(--mono); color: var(--text-2); min-width: 40px; text-align: right; }
+
+/* ── Reports ─────────────────────────────────── */
+.report-card {
+  background: var(--bg-card); border-radius: var(--radius);
+  border: 1px solid var(--border); padding: 18px 20px;
+  margin-bottom: 10px; box-shadow: var(--shadow);
+}
+.report-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+.report-desc { font-size: 12px; color: var(--text-2); margin-bottom: 14px; line-height: 1.5; }
+.report-fields { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.report-field label {
+  display: block; font-size: 12px; font-weight: 500;
+  color: var(--text-2); margin-bottom: 4px;
+}
+.report-field input, .report-field select {
+  width: 100%; padding: 10px 12px;
+  border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  font-family: var(--font); font-size: 14px;
+  background: var(--bg); color: var(--text);
+}
+.report-field input:focus, .report-field select:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+.report-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.btn {
+  display: block; width: 100%;
+  padding: 12px 16px; border: none; border-radius: var(--radius-sm);
+  font-family: var(--font); font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: all .15s; text-align: center;
+}
+.btn:active { transform: scale(.98); }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-dark); }
+.btn-outline { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+.btn-sm { padding: 10px 14px; font-size: 13px; }
+
+/* ── Input (dashboard) ───────────────────────── */
+.date-bar {
+  display: flex; gap: 8px; align-items: center; margin-bottom: 16px;
+}
+.date-bar input {
+  flex: 1; padding: 10px 12px;
+  border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  font-family: var(--font); font-size: 14px;
+  background: var(--bg-card); color: var(--text);
+}
+.date-bar input:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+.date-bar .btn { width: auto; flex-shrink: 0; }
+
+/* ── Nav Link ────────────────────────────────── */
+.nav-home {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; color: rgba(255,255,255,.75);
+  text-decoration: none; font-weight: 500;
+  padding: 4px 10px; border-radius: 20px;
+  background: rgba(255,255,255,.12);
+  transition: background .15s;
+  margin-left: auto;
+}
+.nav-home:hover { background: rgba(255,255,255,.2); }
+
+/* ── Toast ────────────────────────────────────── */
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--text); color: #fff;
+  padding: 12px 20px; border-radius: 10px;
+  font-size: 14px; font-weight: 500;
+  box-shadow: var(--shadow-lg); z-index: 200;
+  animation: toastIn .3s ease; pointer-events: none;
+}
+@keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(20px); } }
+
+/* ── Loading ─────────────────────────────────── */
+.loading {
+  text-align: center; padding: 40px 20px; color: var(--text-3);
+}
+.spinner {
+  width: 28px; height: 28px; border: 3px solid var(--border);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin .6s linear infinite; margin: 0 auto 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty-state { text-align: center; padding: 40px 20px; color: var(--text-3); }
+.empty-state .icon { font-size: 40px; margin-bottom: 8px; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div>
+    <h1>HADIR</h1>
+    <div class="subtitle">Dashboard — SMAN 5 Garut</div>
+  </div>
+  <a href="/" class="nav-home">← Presensi</a>
+</div>
+
+<div class="tab-nav">
+  <button class="tab-btn active" onclick="switchTab('overview')">Ringkasan</button>
+  <button class="tab-btn" onclick="switchTab('classes')">Per Kelas</button>
+  <button class="tab-btn" onclick="switchTab('reports')">Laporan</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- TAB 1: OVERVIEW                                                        -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div id="tab-overview" class="tab-panel active">
+  <div class="date-bar">
+    <input type="date" id="dash-date" onchange="loadDashboard()">
+    <button class="btn btn-primary btn-sm" onclick="setToday()">Hari Ini</button>
+  </div>
+
+  <div id="dash-loading" class="loading"><div class="spinner"></div>Memuat data...</div>
+  <div id="dash-content" style="display:none">
+
+    <!-- Coverage -->
+    <div class="card" id="coverage-card">
+      <div class="card-title">Cakupan Presensi Hari Ini</div>
+      <div class="coverage-label">
+        <span class="pct" id="cov-pct">—</span>
+        <span class="detail" id="cov-detail"></span>
+      </div>
+      <div class="coverage-bar-bg"><div class="coverage-bar-fill" id="cov-bar" style="width:0%"></div></div>
+    </div>
+
+    <!-- Entity Stats -->
+    <div class="stat-grid" id="entity-stats">
+      <div class="stat-card accent"><div class="stat-value" id="st-teachers">—</div><div class="stat-label">Guru</div></div>
+      <div class="stat-card info"><div class="stat-value" id="st-classes">—</div><div class="stat-label">Kelas</div></div>
+      <div class="stat-card"><div class="stat-value" id="st-students">—</div><div class="stat-label">Siswa</div></div>
+      <div class="stat-card"><div class="stat-value" id="st-slots">—</div><div class="stat-label">JP Terjadwal</div></div>
+    </div>
+
+    <!-- Teacher Attendance -->
+    <div class="card" id="teacher-att-card" style="margin-top:12px">
+      <div class="card-title">Kehadiran Guru</div>
+      <div id="teacher-statuses" class="status-row"></div>
+      <div id="teacher-empty" class="empty-state" style="display:none;padding:20px 0">
+        <div style="font-size:13px">Belum ada data presensi guru</div>
+      </div>
+    </div>
+
+    <!-- Student Attendance -->
+    <div class="card" id="student-att-card">
+      <div class="card-title">Kehadiran Siswa</div>
+      <div id="student-statuses" class="status-row"></div>
+      <div id="student-empty" class="empty-state" style="display:none;padding:20px 0">
+        <div style="font-size:13px">Belum ada data presensi siswa</div>
+      </div>
+    </div>
+
+    <!-- Staff Activity -->
+    <div class="card" id="staff-card">
+      <div class="card-title">Aktivitas Staff</div>
+      <div id="staff-activity"></div>
+      <div id="staff-empty" class="empty-state" style="display:none;padding:20px 0">
+        <div style="font-size:13px">Belum ada sesi hari ini</div>
+      </div>
+    </div>
+
+    <!-- Weekly Trend -->
+    <div class="card" id="trend-card">
+      <div class="card-title">Tren Kehadiran (7 Hari Terakhir)</div>
+      <div class="trend-chart" id="trend-chart"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- TAB 2: PER CLASS                                                       -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div id="tab-classes" class="tab-panel">
+  <div class="date-bar">
+    <input type="date" id="class-date" onchange="loadClassStats()">
+    <button class="btn btn-primary btn-sm" onclick="setTodayClass()">Hari Ini</button>
+  </div>
+
+  <div id="class-loading" class="loading"><div class="spinner"></div>Memuat data...</div>
+
+  <div id="class-content" style="display:none">
+    <div class="card-flat" id="grade-10-card" style="display:none">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--border)">
+        <div class="card-title" style="margin:0">Kelas X</div>
+      </div>
+      <div id="grade-10-list"></div>
+    </div>
+    <div class="card-flat" id="grade-11-card" style="display:none">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--border)">
+        <div class="card-title" style="margin:0">Kelas XI</div>
+      </div>
+      <div id="grade-11-list"></div>
+    </div>
+    <div class="card-flat" id="grade-12-card" style="display:none">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--border)">
+        <div class="card-title" style="margin:0">Kelas XII</div>
+      </div>
+      <div id="grade-12-list"></div>
+    </div>
+    <div id="class-empty" class="empty-state" style="display:none">
+      <div class="icon">📋</div>
+      <div>Tidak ada data presensi untuk tanggal ini</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- TAB 3: REPORTS (Excel Downloads)                                       -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div id="tab-reports" class="tab-panel">
+
+  <!-- Daily Recap -->
+  <div class="report-card">
+    <div class="report-title">📋 Rekap Harian</div>
+    <div class="report-desc">Detail seluruh kelas, guru, dan siswa dalam satu hari. Cocok untuk laporan harian ke kepala sekolah.</div>
+    <div class="report-fields">
+      <div class="report-field">
+        <label>Tanggal</label>
+        <input type="date" id="rpt-daily-date">
+      </div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="downloadReport('daily')">Download Excel</button>
+  </div>
+
+  <!-- Teacher Summary -->
+  <div class="report-card">
+    <div class="report-title">👨‍🏫 Rekap Kehadiran Guru</div>
+    <div class="report-desc">Ringkasan status kehadiran seluruh guru dalam rentang waktu tertentu.</div>
+    <div class="report-fields">
+      <div class="report-row">
+        <div class="report-field">
+          <label>Dari</label>
+          <input type="date" id="rpt-teacher-from">
+        </div>
+        <div class="report-field">
+          <label>Sampai</label>
+          <input type="date" id="rpt-teacher-to">
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="downloadReport('teacher')">Download Excel</button>
+  </div>
+
+  <!-- Student Summary -->
+  <div class="report-card">
+    <div class="report-title">🎓 Rekap Kehadiran Siswa</div>
+    <div class="report-desc">Rekap per siswa dalam satu kelas. Pilih kelas dan periode.</div>
+    <div class="report-fields">
+      <div class="report-field">
+        <label>Kelas</label>
+        <select id="rpt-student-class">
+          <option value="">— Memuat kelas... —</option>
+        </select>
+      </div>
+      <div class="report-row">
+        <div class="report-field">
+          <label>Dari</label>
+          <input type="date" id="rpt-student-from">
+        </div>
+        <div class="report-field">
+          <label>Sampai</label>
+          <input type="date" id="rpt-student-to">
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="downloadReport('student')">Download Excel</button>
+  </div>
+
+  <!-- Staff Accountability -->
+  <div class="report-card">
+    <div class="report-title">🔐 Akuntabilitas Staff</div>
+    <div class="report-desc">Log aktivitas staff: sesi login, verifikasi TOTP, dan jumlah kelas yang direkam.</div>
+    <div class="report-fields">
+      <div class="report-row">
+        <div class="report-field">
+          <label>Dari</label>
+          <input type="date" id="rpt-staff-from">
+        </div>
+        <div class="report-field">
+          <label>Sampai</label>
+          <input type="date" id="rpt-staff-to">
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="downloadReport('staff')">Download Excel</button>
+  </div>
+
+</div>
+
+<script>
+const API = '';
+const DAYS_ID = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+const STATUS_LABELS = {
+  hadir:'Hadir', tidak_hadir:'Tidak Hadir', terlambat:'Terlambat',
+  sakit:'Sakit', izin:'Izin', alpa:'Alpa',
+};
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
+
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function firstOfMonth() {
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-01';
+}
+
+function toast(msg, dur=2500) {
+  const t = document.createElement('div'); t.className='toast'; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), dur);
+}
+
+async function apiFetch(path) {
+  const r = await fetch(API + path);
+  if (!r.ok) throw new Error('Request failed');
+  return r.json();
+}
+
+// ── Tab Switching ───────────────────────────────────────────────────────────
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', b.textContent.trim() === {
+      overview:'Ringkasan', classes:'Per Kelas', reports:'Laporan'
+    }[tab]);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+
+  if (tab === 'classes' && !classesLoaded) loadClassStats();
+  if (tab === 'reports' && !reportsInit) initReports();
+}
+
+// ── DASHBOARD TAB ───────────────────────────────────────────────────────────
+
+function setToday() {
+  document.getElementById('dash-date').value = todayStr();
+  loadDashboard();
+}
+
+function setTodayClass() {
+  document.getElementById('class-date').value = todayStr();
+  loadClassStats();
+}
+
+async function loadDashboard() {
+  const date = document.getElementById('dash-date').value;
+  if (!date) return;
+
+  document.getElementById('dash-loading').style.display = 'block';
+  document.getElementById('dash-content').style.display = 'none';
+
+  try {
+    const [summary, trend] = await Promise.all([
+      apiFetch(`/dashboard/summary?date=${date}`),
+      apiFetch(`/dashboard/weekly-trend?date=${date}`),
+    ]);
+
+    renderSummary(summary);
+    renderTrend(trend);
+
+    document.getElementById('dash-loading').style.display = 'none';
+    document.getElementById('dash-content').style.display = 'block';
+  } catch(e) {
+    document.getElementById('dash-loading').innerHTML =
+      '<div class="empty-state"><div class="icon">⚠</div><div>Gagal memuat data dashboard</div></div>';
+  }
+}
+
+function renderSummary(data) {
+  const ent = data.entity_counts;
+  const today = data.today;
+
+  // Coverage
+  document.getElementById('cov-pct').textContent = today.coverage_pct + '%';
+  document.getElementById('cov-detail').textContent =
+    `${today.sessions_recorded} / ${today.total_schedule_slots} sesi direkam`;
+  document.getElementById('cov-bar').style.width = today.coverage_pct + '%';
+
+  // Entity stats
+  document.getElementById('st-teachers').textContent = ent.teachers;
+  document.getElementById('st-classes').textContent = ent.classes;
+  document.getElementById('st-students').textContent = ent.students;
+  document.getElementById('st-slots').textContent = today.total_schedule_slots;
+
+  // Teacher statuses
+  const tStatus = today.teacher_statuses;
+  const tEl = document.getElementById('teacher-statuses');
+  const tEmpty = document.getElementById('teacher-empty');
+  if (Object.keys(tStatus).length === 0) {
+    tEl.innerHTML = '';
+    tEmpty.style.display = 'block';
+  } else {
+    tEmpty.style.display = 'none';
+    tEl.innerHTML = Object.entries(tStatus).map(([k,v]) =>
+      `<span class="status-pill ${k}">${STATUS_LABELS[k]||k}: ${v}</span>`
+    ).join('');
+  }
+
+  // Student statuses
+  const sStatus = today.student_statuses;
+  const sEl = document.getElementById('student-statuses');
+  const sEmpty = document.getElementById('student-empty');
+  if (Object.keys(sStatus).length === 0) {
+    sEl.innerHTML = '';
+    sEmpty.style.display = 'block';
+  } else {
+    sEmpty.style.display = 'none';
+    sEl.innerHTML = Object.entries(sStatus).map(([k,v]) =>
+      `<span class="status-pill ${k}">${STATUS_LABELS[k]||k}: ${v}</span>`
+    ).join('');
+  }
+
+  // Staff activity
+  const staffEl = document.getElementById('staff-activity');
+  const staffEmpty = document.getElementById('staff-empty');
+  if (today.staff_sessions.length === 0) {
+    staffEl.innerHTML = '';
+    staffEmpty.style.display = 'block';
+  } else {
+    staffEmpty.style.display = 'none';
+    staffEl.innerHTML = today.staff_sessions.map(s => {
+      const time = s.started_at ? new Date(s.started_at).toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit'}) : '-';
+      const end = s.completed_at ? new Date(s.completed_at).toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit'}) : 'aktif';
+      return `<div class="activity-item">
+        <div class="activity-dot ${s.is_active?'active':'done'}"></div>
+        <div class="activity-name">${s.staff_name}</div>
+        <div class="activity-time">${time} → ${end}</div>
+      </div>`;
+    }).join('');
+  }
+}
+
+function renderTrend(trend) {
+  const chart = document.getElementById('trend-chart');
+  if (!trend.length) {
+    chart.innerHTML = '<div class="empty-state" style="width:100%;padding:20px 0"><div style="font-size:13px">Belum ada data tren</div></div>';
+    return;
+  }
+
+  const maxPct = Math.max(...trend.map(t => t.attendance_pct), 1);
+  chart.innerHTML = trend.map(t => {
+    const h = Math.max((t.attendance_pct / 100) * 100, 4);
+    const dayLabel = t.date.slice(8);  // just the day number
+    return `<div class="trend-bar-wrapper">
+      <div class="trend-pct">${t.attendance_pct > 0 ? t.attendance_pct + '%' : ''}</div>
+      <div class="trend-bar-track">
+        <div class="trend-bar" style="height:${h}%" title="${t.date}: ${t.attendance_pct}%"></div>
+      </div>
+      <div class="trend-bar-label">${dayLabel}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── CLASS STATS TAB ─────────────────────────────────────────────────────────
+
+let classesLoaded = false;
+
+async function loadClassStats() {
+  const date = document.getElementById('class-date').value;
+  if (!date) return;
+
+  document.getElementById('class-loading').style.display = 'block';
+  document.getElementById('class-content').style.display = 'none';
+
+  try {
+    const data = await apiFetch(`/dashboard/class-stats?date=${date}`);
+    renderClassStats(data);
+    classesLoaded = true;
+
+    document.getElementById('class-loading').style.display = 'none';
+    document.getElementById('class-content').style.display = 'block';
+  } catch(e) {
+    document.getElementById('class-loading').innerHTML =
+      '<div class="empty-state"><div class="icon">⚠</div><div>Gagal memuat data kelas</div></div>';
+  }
+}
+
+function renderClassStats(data) {
+  const grades = {10: [], 11: [], 12: []};
+  data.forEach(c => {
+    if (grades[c.grade_level]) grades[c.grade_level].push(c);
+  });
+
+  let hasAny = false;
+  [10, 11, 12].forEach(g => {
+    const card = document.getElementById(`grade-${g}-card`);
+    const list = document.getElementById(`grade-${g}-list`);
+    if (grades[g].length === 0) {
+      card.style.display = 'none';
+      return;
+    }
+    hasAny = true;
+    card.style.display = 'block';
+    list.innerHTML = grades[g].map(c => {
+      const total = Object.values(c.student_statuses).reduce((a,b) => a+b, 0) || 0;
+      const hadir = c.student_statuses.hadir || 0;
+      const pct = total > 0 ? Math.round(hadir / total * 100) : 0;
+      const sessions = c.sessions_recorded;
+      return `<div class="class-row">
+        <div class="class-name">${c.class_name}</div>
+        <div class="class-bar-bg"><div class="class-bar-fill" style="width:${pct}%"></div></div>
+        <div class="class-count">${sessions > 0 ? pct + '%' : '—'}</div>
+      </div>`;
+    }).join('');
+  });
+
+  document.getElementById('class-empty').style.display = hasAny ? 'none' : 'block';
+}
+
+// ── REPORTS TAB ─────────────────────────────────────────────────────────────
+
+let reportsInit = false;
+
+async function initReports() {
+  reportsInit = true;
+  const today = todayStr();
+  const fom = firstOfMonth();
+
+  document.getElementById('rpt-daily-date').value = today;
+  document.getElementById('rpt-teacher-from').value = fom;
+  document.getElementById('rpt-teacher-to').value = today;
+  document.getElementById('rpt-student-from').value = fom;
+  document.getElementById('rpt-student-to').value = today;
+  document.getElementById('rpt-staff-from').value = fom;
+  document.getElementById('rpt-staff-to').value = today;
+
+  // Load classes for student report dropdown
+  try {
+    const classes = await apiFetch('/classes');
+    const sel = document.getElementById('rpt-student-class');
+    sel.innerHTML = '<option value="">— Pilih kelas —</option>' +
+      classes.map(c => `<option value="${c.id}">${c.name} (${c.student_count} siswa)</option>`).join('');
+  } catch(e) {
+    toast('Gagal memuat daftar kelas');
+  }
+}
+
+function downloadReport(type) {
+  let url = '';
+
+  switch(type) {
+    case 'daily': {
+      const d = document.getElementById('rpt-daily-date').value;
+      if (!d) return toast('Pilih tanggal');
+      url = `/reports/daily-recap?date=${d}`;
+      break;
+    }
+    case 'teacher': {
+      const from = document.getElementById('rpt-teacher-from').value;
+      const to = document.getElementById('rpt-teacher-to').value;
+      if (!from || !to) return toast('Pilih periode');
+      url = `/reports/teacher-summary?from=${from}&to=${to}`;
+      break;
+    }
+    case 'student': {
+      const cls = document.getElementById('rpt-student-class').value;
+      const from = document.getElementById('rpt-student-from').value;
+      const to = document.getElementById('rpt-student-to').value;
+      if (!cls) return toast('Pilih kelas');
+      if (!from || !to) return toast('Pilih periode');
+      url = `/reports/student-summary?class_id=${cls}&from=${from}&to=${to}`;
+      break;
+    }
+    case 'staff': {
+      const from = document.getElementById('rpt-staff-from').value;
+      const to = document.getElementById('rpt-staff-to').value;
+      if (!from || !to) return toast('Pilih periode');
+      url = `/reports/staff-accountability?from=${from}&to=${to}`;
+      break;
+    }
+  }
+
+  // Trigger download
+  const a = document.createElement('a');
+  a.href = API + url;
+  a.download = '';
+  a.click();
+  toast('Mengunduh laporan...');
+}
+
+// ── Init ────────────────────────────────────────────────────────────────────
+
+document.getElementById('dash-date').value = todayStr();
+document.getElementById('class-date').value = todayStr();
+loadDashboard();
+</script>
+</body>
+</html>
