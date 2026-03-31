@@ -473,9 +473,23 @@ async function doVerifyTotp() {
   } catch(e) { toast(e.message); }
 }
 
+const ADMIN_ASSIGNMENTS = {
+  'Admin 1': [{grade:10, letters:['A','B','C','D','E','F','G','H']}],
+  'Admin 2': [{grade:11, letters:['E','F','G','H','I','J','K','L']}],
+  'Admin 3': [{grade:10, letters:['I','J','K','L']}, {grade:11, letters:['A','B','C','D']}],
+};
+function isMyClass(name, grade) {
+  if (grade === 12) return false;
+  const rules = ADMIN_ASSIGNMENTS[state.staffName];
+  if (!rules) return grade !== 12;
+  const letter = name.trim().slice(-1).toUpperCase();
+  return rules.some(r => r.grade === grade && r.letters.includes(letter));
+}
+
 async function loadClasses() {
   try {
-    state.classes = await api('GET', '/classes');
+    const all = await api('GET', '/classes');
+    state.classes = all.filter(c => isMyClass(c.name, c.grade_level));
     const sel = document.getElementById('class-select');
     sel.innerHTML = '<option value="">— Pilih kelas —</option>' +
       state.classes.map(c => `<option value="${c.id}">${c.name} (${c.student_count} siswa)</option>`).join('');
