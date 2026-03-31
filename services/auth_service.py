@@ -37,17 +37,16 @@ def verify_staff_pin(db: Session, staff_id: int, pin: str) -> dict:
     }
 
 
-def list_staff(db: Session) -> list[dict]:
+def list_staff(db: Session, role: str = None) -> list[dict]:
     """
     List all active staff — shown on the login screen
     so admin can tap their name instead of typing an ID.
+    Optionally filter by role (e.g. 'admin', 'headmaster').
     """
-    staff = (
-        db.query(Staff)
-        .filter(Staff.is_active == True)
-        .order_by(Staff.name)
-        .all()
-    )
+    query = db.query(Staff).filter(Staff.is_active == True)
+    if role:
+        query = query.filter(Staff.role == role)
+    staff = query.order_by(Staff.name).all()
 
     return [
         {

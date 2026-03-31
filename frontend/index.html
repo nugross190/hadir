@@ -250,7 +250,7 @@ body {
 
 <div id="screen-totp" class="screen">
   <div class="top-bar">
-    <button class="back-btn" onclick="goTo('login')">←</button>
+    <button class="back-btn" onclick="doLogout()">←</button>
     <div><h1>Verifikasi Kehadiran</h1><div class="subtitle" id="totp-staff-name"></div></div>
   </div>
   <div class="content">
@@ -324,7 +324,7 @@ body {
   <div class="top-bar"><div><h1>Sesi Selesai</h1></div></div>
   <div class="content">
     <div class="card" id="session-summary"></div>
-    <button class="btn btn-primary" onclick="goTo('login')" style="margin-top:12px">Kembali ke Login</button>
+    <button class="btn btn-primary" onclick="doLogout()" style="margin-top:12px">Selesai &amp; Keluar</button>
   </div>
 </div>
 
@@ -337,6 +337,19 @@ body {
 </div>
 
 <script>
+// ── Auth Guard ──────────────────────────────────────────────────────────────
+(function() {
+  try {
+    const sess = JSON.parse(sessionStorage.getItem('hadir_auth') || 'null');
+    if (!sess || sess.role !== 'admin') {
+      window.location.replace('/login');
+    }
+  } catch(e) {
+    sessionStorage.removeItem('hadir_auth');
+    window.location.replace('/login');
+  }
+})();
+
 const API = '';
 const DAYS_ID = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
 const TEACHER_STATUSES = [
@@ -348,8 +361,13 @@ const STUDENT_STATUSES = [
   {key:'sakit',label:'Sakit'},{key:'izin',label:'Izin'},{key:'alpa',label:'Alpa'},
 ];
 
+// Load session data
+const _sess = JSON.parse(sessionStorage.getItem('hadir_auth') || '{}');
+
 let state = {
-  staffId:null, staffName:'', recordingSessionId:null,
+  staffId: _sess.staffId || null,
+  staffName: _sess.name || '',
+  recordingSessionId:null,
   selectedSlot:null, teacherStatus:null, teacherNotes:'',
   students:[], recordedSlots:[], classes:[],
 };
@@ -417,6 +435,7 @@ function selectStaff(id, name) {
   document.getElementById('pin-input').focus();
 }
 async function doLogin() {
+  // Legacy: not used when accessing via /input (session already set by /login page)
   const pin = document.getElementById('pin-input').value;
   if (!pin) return toast('Masukkan PIN');
   try {
@@ -426,6 +445,11 @@ async function doLogin() {
     document.getElementById('totp-input').value='';
     document.getElementById('totp-input').focus();
   } catch(e) { toast(e.message); }
+}
+
+function doLogout() {
+  sessionStorage.removeItem('hadir_auth');
+  window.location.replace('/login');
 }
 
 async function doVerifyTotp() {
@@ -582,17 +606,14 @@ async function doCompleteSession() {
 }
 function confirmExit() {
   if (state.recordedSlots.length>0 && !confirm('Sesi masih aktif. Yakin keluar?')) return;
-  goTo('login'); resetState();
-}
-function resetState() {
-  state = {staffId:null,staffName:'',recordingSessionId:null,selectedSlot:null,
-    teacherStatus:null,teacherNotes:'',students:[],recordedSlots:[],classes:[]};
-  document.getElementById('pin-input').value='';
-  document.getElementById('pin-section').style.display='none';
-  document.querySelectorAll('.staff-btn').forEach(b => b.classList.remove('selected'));
+  doLogout();
 }
 
-loadStaff();
+// On load: go directly to TOTP screen (skip login screen since auth done on /login page)
+document.getElementById('totp-staff-name').textContent = state.staffName;
+goTo('totp');
+document.getElementById('totp-input').focus();
+
 document.getElementById('pin-input').addEventListener('keydown', e => {if(e.key==='Enter') doLogin();});
 document.getElementById('totp-input').addEventListener('keydown', e => {if(e.key==='Enter') doVerifyTotp();});
 </script>

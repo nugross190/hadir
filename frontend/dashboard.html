@@ -335,7 +335,7 @@ body {
     <h1>HADIR</h1>
     <div class="subtitle">Dashboard — SMAN 5 Garut</div>
   </div>
-  <a href="/" class="nav-home">← Presensi</a>
+  <span id="dash-nav-link"></span>
 </div>
 
 <div class="tab-nav">
@@ -637,6 +637,44 @@ body {
 </div>
 
 <script>
+// ── Auth Guard ──────────────────────────────────────────────────────────────
+const _dashSess = (function() {
+  try {
+    const sess = JSON.parse(sessionStorage.getItem('hadir_auth') || 'null');
+    if (!sess) { window.location.replace('/login'); return null; }
+    return sess;
+  } catch(e) {
+    sessionStorage.removeItem('hadir_auth');
+    window.location.replace('/login');
+    return null;
+  }
+})();
+
+const _dashRole = _dashSess ? _dashSess.role : 'admin';
+const _dashName = _dashSess ? _dashSess.name : '';
+
+// Apply role-based tab visibility
+// admin: sees only Per Kelas + Laporan
+// headmaster / owner: sees all tabs
+(function applyRoleTabs() {
+  if (_dashRole === 'admin') {
+    const overviewBtn = document.querySelector('.tab-btn[onclick*="overview"]');
+    const kelolaBtn = document.querySelector('.tab-btn[onclick*="kelola"]');
+    if (overviewBtn) overviewBtn.style.display = 'none';
+    if (kelolaBtn) kelolaBtn.style.display = 'none';
+    // Make Per Kelas the first active tab for admin
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    const classesBtn = document.querySelector('.tab-btn[onclick*="classes"]');
+    if (classesBtn) classesBtn.classList.add('active');
+    const classesPanel = document.getElementById('tab-classes');
+    if (classesPanel) classesPanel.classList.add('active');
+  }
+  // Update user name in top bar
+  const subtitle = document.querySelector('.top-bar .subtitle');
+  if (subtitle && _dashName) subtitle.textContent = `Dashboard — ${_dashName}`;
+})();
+
 const API = '';
 const DAYS_ID = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
 const STATUS_LABELS = {
@@ -1168,11 +1206,37 @@ async function apiPost(method, path, body) {
   return r.json();
 }
 
+// ── Auth helpers ────────────────────────────────────────────────────────────
+
+function dashLogout() {
+  sessionStorage.removeItem('hadir_auth');
+  window.location.replace('/login');
+}
+
 // ── Init ────────────────────────────────────────────────────────────────────
 
-document.getElementById('dash-date').value = todayStr();
-document.getElementById('class-date').value = todayStr();
-loadDashboard();
+// Set role-appropriate nav link
+(function() {
+  const navEl = document.getElementById('dash-nav-link');
+  if (!navEl) return;
+  if (_dashRole === 'admin') {
+    navEl.innerHTML = '<a href="/input" class="nav-home">← Presensi</a>';
+  } else if (_dashRole === 'owner') {
+    navEl.innerHTML = '<a href="/panel" class="nav-home">← Panel</a>';
+  } else {
+    navEl.innerHTML = '<button onclick="dashLogout()" style="background:rgba(255,255,255,.15);border:none;color:#fff;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer">Keluar</button>';
+  }
+})();
+
+// For admin: load class stats immediately (that's their first tab)
+if (_dashRole === 'admin') {
+  document.getElementById('class-date').value = todayStr();
+  loadClassStats();
+} else {
+  document.getElementById('dash-date').value = todayStr();
+  document.getElementById('class-date').value = todayStr();
+  loadDashboard();
+}
 </script>
 </body>
 </html>

@@ -75,7 +75,19 @@ app.include_router(students_router)
 
 @app.get("/")
 def root():
-    """Serve the admin frontend."""
+    """Serve the centralized login page."""
+    return FileResponse(FRONTEND_DIR / "login.html")
+
+
+@app.get("/login")
+def login_page():
+    """Serve the centralized login page."""
+    return FileResponse(FRONTEND_DIR / "login.html")
+
+
+@app.get("/input")
+def input_page():
+    """Serve the admin attendance recording page."""
     return FileResponse(FRONTEND_DIR / "index.html")
 
 
@@ -83,9 +95,18 @@ def root():
 def display():
     """Serve the bell PC TOTP display page."""
     return FileResponse(FRONTEND_DIR / "display.html")
+
+
 @app.get("/dashboard")
 def dashboard_page():
+    """Serve the dashboard page."""
     return FileResponse(FRONTEND_DIR / "dashboard.html")
+
+
+@app.get("/panel")
+def panel_page():
+    """Serve the owner admin panel (no login required)."""
+    return FileResponse(FRONTEND_DIR / "panel.html")
 
 
 @app.get("/api")
@@ -175,8 +196,8 @@ def seed_database(db: Session = Depends(get_db)):
         return {"status": "already seeded", "teachers": db.query(Teacher).count()}
 
     # Seed staff
-    for s in [("Admin 1","1234"),("Admin 2","5678"),("Admin 3","9012")]:
-        db.add(Staff(name=s[0], pin_hash=bcrypt.hash(s[1]), role="admin"))
+    for s in [("Admin 1","1234","admin"),("Admin 2","5678","admin"),("Admin 3","9012","admin"),("Kepala Sekolah","1111","headmaster")]:
+        db.add(Staff(name=s[0], pin_hash=bcrypt.hash(s[1]), role=s[2]))
     db.commit()
 
     # Seed teachers

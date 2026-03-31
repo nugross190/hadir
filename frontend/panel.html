@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>HADIR — Panel Administrator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F6F5F0;
+  --bg-card: #FFFFFF;
+  --bg-active: #EBF5EE;
+  --text: #1A1A18;
+  --text-2: #5C5B57;
+  --text-3: #9C9A92;
+  --border: #E5E3DB;
+  --accent: #1B7A43;
+  --accent-light: #D4EDDB;
+  --accent-dark: #145C32;
+  --danger: #C53030;
+  --danger-light: #FED7D7;
+  --info: #2B6CB0;
+  --info-light: #BEE3F8;
+  --purple: #6B46C1;
+  --purple-light: #E9D8FD;
+  --warning: #B7791F;
+  --warning-light: #FEFCBF;
+  --radius: 14px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-lg: 0 4px 14px rgba(0,0,0,0.08);
+  --font: 'DM Sans', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.top-bar {
+  background: var(--accent); color: #fff;
+  padding: 16px 20px 20px;
+}
+.top-bar h1 { font-size: 20px; font-weight: 700; letter-spacing: .5px; }
+.top-bar .subtitle { font-size: 13px; opacity: .8; margin-top: 4px; }
+.top-bar .badge {
+  display: inline-block; margin-top: 8px;
+  background: rgba(255,255,255,.2); color: #fff;
+  padding: 4px 12px; border-radius: 20px;
+  font-size: 11px; font-weight: 600; letter-spacing: .5px;
+}
+
+.content { padding: 16px; }
+
+.section-label {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 1.2px; color: var(--text-3);
+  padding: 16px 0 8px;
+}
+
+.nav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 4px; }
+.nav-card {
+  background: var(--bg-card); border-radius: var(--radius);
+  border: 1px solid var(--border); padding: 18px 16px;
+  text-decoration: none; color: var(--text);
+  box-shadow: var(--shadow); transition: all .15s;
+  display: block;
+}
+.nav-card:active { transform: scale(.97); }
+.nav-card:hover { border-color: var(--accent); box-shadow: var(--shadow-lg); }
+.nav-card .nav-icon { font-size: 28px; margin-bottom: 8px; }
+.nav-card .nav-title { font-size: 14px; font-weight: 600; }
+.nav-card .nav-desc { font-size: 11px; color: var(--text-3); margin-top: 3px; line-height: 1.4; }
+.nav-card.accent { border-left: 3px solid var(--accent); }
+.nav-card.info { border-left: 3px solid var(--info); }
+.nav-card.purple { border-left: 3px solid var(--purple); }
+.nav-card.warning { border-left: 3px solid var(--warning); }
+
+.stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; }
+.stat-card {
+  background: var(--bg-card); border-radius: var(--radius-sm);
+  border: 1px solid var(--border); padding: 14px 16px;
+  box-shadow: var(--shadow);
+}
+.stat-value {
+  font-family: var(--mono); font-size: 26px; font-weight: 700;
+  color: var(--text); line-height: 1;
+}
+.stat-label { font-size: 12px; color: var(--text-2); margin-top: 4px; font-weight: 500; }
+.stat-card.accent .stat-value { color: var(--accent); }
+.stat-card.info .stat-value { color: var(--info); }
+
+.info-card {
+  background: var(--bg-card); border-radius: var(--radius);
+  border: 1px solid var(--border); padding: 16px 20px;
+  margin-bottom: 12px; box-shadow: var(--shadow);
+}
+.info-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+}
+.info-row:last-child { border-bottom: none; padding-bottom: 0; }
+.info-row .label { color: var(--text-2); }
+.info-row .value { font-weight: 600; font-family: var(--mono); font-size: 12px; }
+.info-row .value.ok { color: var(--accent); }
+.info-row .value.warn { color: var(--warning); }
+
+.btn {
+  display: block; width: 100%;
+  padding: 12px 16px; border: none; border-radius: var(--radius-sm);
+  font-family: var(--font); font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: all .15s; text-align: center;
+}
+.btn:active { transform: scale(.98); }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-dark); }
+.btn-danger { background: var(--danger-light); color: var(--danger); }
+.btn-outline { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--text); color: #fff;
+  padding: 12px 20px; border-radius: 10px;
+  font-size: 14px; font-weight: 500;
+  box-shadow: var(--shadow-lg); z-index: 200;
+  animation: toastIn .3s ease; pointer-events: none;
+}
+@keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(20px); } }
+
+.chip {
+  display: inline-block;
+  padding: 3px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 600;
+}
+.chip.ok { background: var(--accent-light); color: var(--accent-dark); }
+.chip.warn { background: var(--warning-light); color: var(--warning); }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <h1>Panel Administrator</h1>
+  <div class="subtitle">HADIR — SMAN 5 Garut</div>
+  <div class="badge">AKSES PENUH — TANPA PASSWORD</div>
+</div>
+
+<div class="content">
+
+  <!-- Quick Nav -->
+  <div class="section-label">Navigasi Cepat</div>
+  <div class="nav-grid">
+    <a href="/dashboard" class="nav-card accent" onclick="setOwnerSession()">
+      <div class="nav-icon">📊</div>
+      <div class="nav-title">Dashboard Lengkap</div>
+      <div class="nav-desc">Semua tab: ringkasan, per kelas, laporan, kelola siswa</div>
+    </a>
+    <a href="/input" class="nav-card info" onclick="clearSession()">
+      <div class="nav-icon">📋</div>
+      <div class="nav-title">Input Presensi</div>
+      <div class="nav-desc">Halaman input admin (butuh login PIN admin)</div>
+    </a>
+    <a href="/display" class="nav-card purple">
+      <div class="nav-icon">🖥️</div>
+      <div class="nav-title">Layar TOTP</div>
+      <div class="nav-desc">Tampilan kode untuk PC bel sekolah</div>
+    </a>
+    <a href="/login" class="nav-card warning" onclick="clearSession()">
+      <div class="nav-icon">🔐</div>
+      <div class="nav-title">Halaman Login</div>
+      <div class="nav-desc">Login normal untuk admin & kepala sekolah</div>
+    </a>
+  </div>
+
+  <!-- System Stats -->
+  <div class="section-label">Statistik Sistem</div>
+  <div class="stat-grid" id="stats-grid">
+    <div class="stat-card accent"><div class="stat-value" id="st-teachers">—</div><div class="stat-label">Guru</div></div>
+    <div class="stat-card info"><div class="stat-value" id="st-classes">—</div><div class="stat-label">Kelas</div></div>
+    <div class="stat-card"><div class="stat-value" id="st-students">—</div><div class="stat-label">Siswa</div></div>
+    <div class="stat-card"><div class="stat-value" id="st-staff">—</div><div class="stat-label">Akun Staff</div></div>
+  </div>
+
+  <!-- System Info -->
+  <div class="section-label">Info Sistem</div>
+  <div class="info-card" id="system-info">
+    <div class="info-row">
+      <span class="label">Status Database</span>
+      <span class="value" id="db-status">memeriksa...</span>
+    </div>
+    <div class="info-row">
+      <span class="label">Versi Sistem</span>
+      <span class="value" id="sys-version">—</span>
+    </div>
+    <div class="info-row">
+      <span class="label">URL Panel</span>
+      <span class="value ok">/panel</span>
+    </div>
+    <div class="info-row">
+      <span class="label">Akses Owner</span>
+      <span class="value ok">AKTIF</span>
+    </div>
+  </div>
+
+  <!-- Akun Staff -->
+  <div class="section-label">Akun Terdaftar</div>
+  <div class="info-card" id="staff-list">
+    <div style="color:var(--text-3);font-size:13px;text-align:center;padding:12px 0">Memuat...</div>
+  </div>
+
+  <!-- Seed Data -->
+  <div class="section-label">Inisialisasi Data</div>
+  <div class="info-card">
+    <div style="font-size:13px;color:var(--text-2);margin-bottom:12px;line-height:1.5">
+      Jalankan seed hanya sekali saat pertama deploy. Akan membuat tabel dan mengisi data awal (guru, kelas, jadwal, siswa, staff).
+    </div>
+    <button class="btn btn-outline" onclick="runSeed()" id="seed-btn">Jalankan Seed Data</button>
+    <div id="seed-result" style="margin-top:10px;font-size:12px;color:var(--text-3);display:none"></div>
+  </div>
+
+</div>
+
+<script>
+// Set owner session immediately so dashboard link works
+function setOwnerSession() {
+  sessionStorage.setItem('hadir_auth', JSON.stringify({
+    staffId: null,
+    name: 'Administrator',
+    role: 'owner',
+  }));
+}
+
+function clearSession() {
+  sessionStorage.removeItem('hadir_auth');
+}
+
+// Always set owner session when panel is open
+setOwnerSession();
+
+function toast(msg, dur=2500) {
+  const t = document.createElement('div'); t.className='toast'; t.textContent=msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), dur);
+}
+
+async function loadStats() {
+  try {
+    const r = await fetch('/stats');
+    const d = await r.json();
+    document.getElementById('st-teachers').textContent = d.teachers;
+    document.getElementById('st-classes').textContent = d.classes;
+    document.getElementById('st-students').textContent = d.students;
+    document.getElementById('st-staff').textContent = d.staff;
+  } catch(e) {
+    ['st-teachers','st-classes','st-students','st-staff'].forEach(id => {
+      document.getElementById(id).textContent = '?';
+    });
+  }
+}
+
+async function loadHealth() {
+  try {
+    const [health, info] = await Promise.all([
+      fetch('/health').then(r => r.json()),
+      fetch('/api').then(r => r.json()),
+    ]);
+    document.getElementById('db-status').textContent = health.database === 'connected' ? 'Terhubung' : 'Error';
+    document.getElementById('db-status').className = 'value ' + (health.database === 'connected' ? 'ok' : 'warn');
+    document.getElementById('sys-version').textContent = info.version;
+  } catch(e) {
+    document.getElementById('db-status').textContent = 'Gagal terhubung';
+    document.getElementById('db-status').className = 'value warn';
+  }
+}
+
+async function loadStaffList() {
+  try {
+    const r = await fetch('/auth/staff');
+    const staff = await r.json();
+    const roleLabel = {admin: 'Admin', headmaster: 'Kepala Sekolah', owner: 'Administrator'};
+    const roleColor = {admin: 'ok', headmaster: 'ok', owner: 'ok'};
+    document.getElementById('staff-list').innerHTML = staff.map(s => `
+      <div class="info-row">
+        <span class="label">${s.name}</span>
+        <span class="chip ok">${roleLabel[s.role] || s.role}</span>
+      </div>`).join('');
+  } catch(e) {
+    document.getElementById('staff-list').innerHTML =
+      '<div style="color:var(--text-3);font-size:13px;text-align:center;padding:8px 0">Gagal memuat</div>';
+  }
+}
+
+async function runSeed() {
+  const btn = document.getElementById('seed-btn');
+  const result = document.getElementById('seed-result');
+  btn.disabled = true;
+  btn.textContent = 'Menjalankan...';
+  try {
+    const r = await fetch('/seed', {method: 'POST'});
+    const d = await r.json();
+    result.style.display = 'block';
+    if (d.status === 'already seeded') {
+      result.textContent = 'Data sudah ada (' + d.teachers + ' guru). Tidak perlu diulang.';
+    } else {
+      result.textContent = `Selesai: ${d.staff} staff, ${d.teachers} guru, ${d.classes} kelas, ${d.students} siswa.`;
+    }
+    btn.textContent = 'Selesai';
+    toast('Seed berhasil dijalankan');
+    loadStats();
+    loadStaffList();
+  } catch(e) {
+    result.style.display = 'block';
+    result.textContent = 'Gagal: ' + e.message;
+    btn.disabled = false;
+    btn.textContent = 'Jalankan Seed Data';
+  }
+}
+
+// Load data on page open
+loadStats();
+loadHealth();
+loadStaffList();
+</script>
+</body>
+</html>

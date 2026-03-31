@@ -7,7 +7,7 @@ POST /auth/login      — verify staff PIN
 GET  /auth/staff      — list active staff (for login screen)
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -33,6 +33,9 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
 
 
 @router.get("/staff")
-def get_staff_list(db: Session = Depends(get_db)):
-    """List all active staff for the login screen."""
-    return list_staff(db)
+def get_staff_list(
+    role: str = Query(None, description="Filter by role: admin, headmaster"),
+    db: Session = Depends(get_db),
+):
+    """List all active staff for the login screen, optionally filtered by role."""
+    return list_staff(db, role=role)

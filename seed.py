@@ -54,6 +54,7 @@ def seed_staff(db):
         {"name": "Admin 1", "pin": "1234", "role": "admin"},
         {"name": "Admin 2", "pin": "5678", "role": "admin"},
         {"name": "Admin 3", "pin": "9012", "role": "admin"},
+        {"name": "Kepala Sekolah", "pin": "1111", "role": "headmaster"},
     ]
 
     for s in staff_data:
