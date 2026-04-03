@@ -35,6 +35,7 @@ from routers.attendance import router as attendance_router
 from routers.reports import router as reports_router
 from routers.dashboard import router as dashboard_router
 from routers.students import router as students_router
+from routers.approval import router as approval_router
 
 FRONTEND_DIR = Path(__file__).resolve().parent / "frontend"
 
@@ -69,6 +70,7 @@ app.include_router(attendance_router)
 app.include_router(reports_router)
 app.include_router(dashboard_router)
 app.include_router(students_router)
+app.include_router(approval_router)
 
 
 # ── Core Endpoints ──────────────────────────────────────────────────────────

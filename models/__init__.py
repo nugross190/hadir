@@ -18,6 +18,8 @@ from models.attendance import (
     StudentAttendanceRecord,
 )
 
+from models.approval import DailyApproval
+
 __all__ = [
     "Staff",
     "Teacher",
@@ -29,4 +31,5 @@ __all__ = [
     "AttendanceSession",
     "TeacherAttendanceRecord",
     "StudentAttendanceRecord",
+    "DailyApproval",
 ]

@@ -43,14 +43,31 @@ def start_recording_session(
 ) -> dict:
     """
     Start a new recording session after TOTP verification.
+    Requires daily approval from headmaster/owner.
     
-    Returns the session info if TOTP is valid,
-    raises ValueError if invalid.
+    Returns the session info if approved + TOTP valid,
+    raises ValueError if not.
     """
+    from models import DailyApproval
+
     # Verify staff exists
     staff = db.query(Staff).filter(Staff.id == staff_id).first()
     if not staff:
         raise ValueError("Staff not found")
+
+    # Check daily approval (only for admin role)
+    if staff.role == "admin":
+        today = date.today()
+        approval = (
+            db.query(DailyApproval)
+            .filter(
+                DailyApproval.staff_id == staff_id,
+                DailyApproval.date == today,
+            )
+            .first()
+        )
+        if not approval:
+            raise ValueError("Belum disetujui oleh kepala sekolah hari ini")
 
     # Validate TOTP
     totp_valid = validate_code(totp_code)

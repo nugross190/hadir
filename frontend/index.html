@@ -638,9 +638,36 @@ function confirmExit() {
 document.getElementById('pin-input').addEventListener('keydown', e => {if(e.key==='Enter') doLogin();});
 document.getElementById('totp-input').addEventListener('keydown', e => {if(e.key==='Enter') doVerifyTotp();});
 
-// On load: restore active session if exists, otherwise go to TOTP
+// On load: check approval, then restore session or go to TOTP
 (async function init() {
+  // Check daily approval first (skip if already has active recording session)
   const rec = JSON.parse(sessionStorage.getItem('hadir_recording') || 'null');
+
+  if (!rec || !rec.recordingSessionId) {
+    // No active session — check approval before showing TOTP
+    try {
+      const approval = await api('GET', `/approval/check/${state.staffId}`);
+      if (!approval.approved) {
+        // Not approved — show waiting screen
+        document.getElementById('screen-totp').querySelector('.content').innerHTML = `
+          <div class="card" style="text-align:center">
+            <div style="font-size:48px;margin-bottom:12px">⏳</div>
+            <div style="font-size:16px;font-weight:600;margin-bottom:8px">Menunggu Persetujuan</div>
+            <p style="font-size:13px;color:var(--text-2);margin-bottom:20px;line-height:1.5">
+              Kepala sekolah belum menyetujui sesi Anda untuk hari ini.<br>
+              Hubungi kepala sekolah untuk mendapatkan persetujuan.
+            </p>
+            <button class="btn btn-outline" onclick="checkApprovalAgain()">Cek Ulang</button>
+          </div>`;
+        document.getElementById('totp-staff-name').textContent = state.staffName;
+        goTo('totp');
+        return;
+      }
+    } catch(e) {
+      // If check fails, proceed to TOTP anyway (don't block on network error)
+    }
+  }
+
   if (rec && rec.recordingSessionId) {
     // Restore the active recording session — no TOTP needed again
     state.recordingSessionId = rec.recordingSessionId;
@@ -667,6 +694,19 @@ document.getElementById('totp-input').addEventListener('keydown', e => {if(e.key
     document.getElementById('totp-input').focus();
   }
 })();
+
+async function checkApprovalAgain() {
+  try {
+    const approval = await api('GET', `/approval/check/${state.staffId}`);
+    if (approval.approved) {
+      toast('Disetujui! ✓');
+      // Reload to show TOTP screen properly
+      window.location.reload();
+    } else {
+      toast('Belum disetujui');
+    }
+  } catch(e) { toast('Gagal menghubungi server'); }
+}
 
 // Prevent accidental page close during active session
 window.addEventListener('beforeunload', function(e) {

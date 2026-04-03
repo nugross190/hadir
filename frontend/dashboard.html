@@ -326,6 +326,29 @@ body {
 }
 .kel-gender.L { background: var(--info-light); color: var(--info); }
 .kel-gender.P { background: var(--purple-light); color: var(--purple); }
+
+/* ── Approval Row ────────────────────────────── */
+.approval-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.approval-row:last-child { border-bottom: none; }
+.approval-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--accent-light); color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 14px; flex-shrink: 0;
+}
+.approval-name { flex: 1; font-size: 14px; font-weight: 500; }
+.approval-status { font-size: 11px; font-weight: 600; margin-right: 4px; }
+.approval-btn {
+  padding: 6px 14px; border-radius: 6px; border: none;
+  font-family: var(--font); font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all .15s;
+}
+.approval-btn:active { transform: scale(.95); }
+.approval-btn.approve { background: var(--accent); color: #fff; }
+.approval-btn.revoke { background: var(--danger-light); color: var(--danger); }
 </style>
 </head>
 <body>
@@ -355,6 +378,13 @@ body {
   </div>
 
   <div id="dash-loading" class="loading"><div class="spinner"></div>Memuat data...</div>
+
+  <!-- Approval Section (headmaster/owner only) -->
+  <div id="approval-section" class="card" style="display:none">
+    <div class="card-title">Persetujuan Admin Hari Ini</div>
+    <div id="approval-list"></div>
+  </div>
+
   <div id="dash-content" style="display:none">
 
     <!-- Coverage -->
