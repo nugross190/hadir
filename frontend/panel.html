@@ -340,6 +340,12 @@ async function runSeed() {
 loadStats();
 loadHealth();
 loadStaffList();
+
+// Prevent accidental page close
+window.addEventListener('beforeunload', function(e) {
+  e.preventDefault();
+  e.returnValue = '';
+});
 </script>
 </body>
 </html>

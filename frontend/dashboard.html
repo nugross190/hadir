@@ -1237,6 +1237,10 @@ if (_dashRole === 'admin') {
   document.getElementById('class-date').value = todayStr();
   loadDashboard();
 }
+
+// Prevent accidental page close
+window.addEventListener('beforeunload', function(e) {
+  e.preventDefault();
+  e.returnValue = '';
+});
 </script>
-</body>
-</html>

@@ -667,6 +667,14 @@ document.getElementById('totp-input').addEventListener('keydown', e => {if(e.key
     document.getElementById('totp-input').focus();
   }
 })();
+
+// Prevent accidental page close during active session
+window.addEventListener('beforeunload', function(e) {
+  if (state.recordingSessionId) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
 </script>
 </body>
 </html>
