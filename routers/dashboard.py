@@ -80,14 +80,22 @@ def dashboard_summary(
         .all()
     )
 
-    # How many schedule slots exist for this day of week
+    # How many schedule slots exist for this day of week (excluding grade 12)
     day_names = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
     dow = day_names[target_date.weekday()]  # Monday=0 → 'Senin'
     total_slots_today = (
         db.query(ScheduleSlot)
-        .filter(ScheduleSlot.day_of_week == dow)
+        .join(Class)
+        .filter(
+            ScheduleSlot.day_of_week == dow,
+            Class.grade_level != 12,
+            Class.is_active == True,
+        )
         .count()
     )
+
+    sessions_recorded = len(sessions_today)
+    coverage = round(sessions_recorded / total_slots_today * 100, 1) if total_slots_today > 0 else 0
 
     return {
         "date": str(target_date),
@@ -100,8 +108,8 @@ def dashboard_summary(
         },
         "today": {
             "total_schedule_slots": total_slots_today,
-            "sessions_recorded": len(sessions_today),
-            "coverage_pct": round(len(sessions_today) / total_slots_today * 100, 1) if total_slots_today > 0 else 0,
+            "sessions_recorded": sessions_recorded,
+            "coverage_pct": coverage,
             "teacher_statuses": teacher_status_counts,
             "student_statuses": student_status_counts,
             "staff_sessions": [
@@ -126,11 +134,25 @@ def class_stats(
     if target_date is None:
         target_date = date.today()
 
+    # Get day of week for slot counting
+    day_names = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu']
+    dow = day_names[target_date.weekday()]
+
     classes = db.query(Class).filter(Class.is_active == True).order_by(Class.grade_level, Class.name).all()
 
     result = []
     for c in classes:
-        # Get attendance sessions via ScheduleSlot (no direct class_id on AttendanceSession)
+        # How many schedule slots exist for this class on this day
+        total_slots = (
+            db.query(ScheduleSlot)
+            .filter(
+                ScheduleSlot.class_id == c.id,
+                ScheduleSlot.day_of_week == dow,
+            )
+            .count()
+        )
+
+        # How many have been recorded
         sessions = (
             db.query(AttendanceSession)
             .join(ScheduleSlot)
@@ -158,6 +180,7 @@ def class_stats(
             "class_name": c.name,
             "grade_level": c.grade_level,
             "total_students": len(c.students),
+            "total_slots": total_slots,
             "sessions_recorded": len(sessions),
             "student_statuses": student_counts,
         })
