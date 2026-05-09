@@ -261,16 +261,11 @@ async function selectRole(role) {
     return;
   }
 
-  // PKS — redirect to dedicated PKS login page
-  if (role === 'pks') {
-    window.location.replace('/pks-patrol');
-    return;
-  }
-
-  // Admin or Headmaster — show staff list
+  // Admin, Headmaster, or PKS — show staff list
   const titles = {
     admin: ['Login Admin', 'Pilih akun admin Anda'],
     headmaster: ['Login Kepala Sekolah', 'Masuk sebagai kepala sekolah'],
+    pks: ['Login PKS', 'Pilih kelompok PKS Anda'],
   };
   document.getElementById('login-title').textContent = titles[role][0];
   document.getElementById('login-subtitle').textContent = titles[role][1];
@@ -280,15 +275,20 @@ async function selectRole(role) {
   try {
     const r = await fetch(`/auth/staff?role=${role}`);
     const staff = await r.json();
-    const isHeadmaster = role === 'headmaster';
+    const roleLabels = {
+      admin: ['Admin', 'akun admin', 'Admin Presensi'],
+      headmaster: ['Kepala Sekolah', 'akun kepala sekolah', 'Kepala Sekolah'],
+      pks: ['PKS', 'akun PKS', 'Patroli Keamanan Sekolah'],
+    };
+    const [labelShort, labelEmpty, labelDesc] = roleLabels[role] || ['Akun','akun','Staff'];
     document.getElementById('staff-list').innerHTML = staff.length === 0
-      ? `<div class="empty-state"><div class="icon">⚠</div><div>Tidak ada akun ${isHeadmaster ? 'kepala sekolah' : 'admin'} terdaftar</div><div style="font-size:12px;margin-top:4px">Hubungi administrator</div></div>`
+      ? `<div class="empty-state"><div class="icon">⚠</div><div>Tidak ada ${labelEmpty} terdaftar</div><div style="font-size:12px;margin-top:4px">Hubungi administrator</div></div>`
       : staff.map(s => `
-          <button class="staff-btn ${isHeadmaster ? 'headmaster' : ''}" onclick="selectStaff(${s.staff_id}, '${s.name.replace(/'/g,"\\'")}', this)">
+          <button class="staff-btn ${role}" onclick="selectStaff(${s.staff_id}, '${s.name.replace(/'/g,"\\'")}', this)">
             <div class="avatar">${s.name.charAt(0)}</div>
             <div>
               <div>${s.name}</div>
-              <div style="font-size:12px;color:var(--text-3);margin-top:2px">${isHeadmaster ? 'Kepala Sekolah' : 'Admin Presensi'}</div>
+              <div style="font-size:12px;color:var(--text-3);margin-top:2px">${labelDesc}</div>
             </div>
           </button>`).join('');
   } catch(e) {
@@ -352,6 +352,7 @@ async function doLogin() {
 
     if (data.role === 'admin') window.location.replace('/input');
     else if (data.role === 'headmaster') window.location.replace('/dashboard');
+    else if (data.role === 'pks') window.location.replace('/pks-patrol');
     else window.location.replace('/dashboard');
   } catch(e) {
     toast('Gagal terhubung ke server');

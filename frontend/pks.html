@@ -94,11 +94,6 @@ body {
   transition: border-color .15s;
 }
 .input-group input:focus { outline: none; border-color: var(--pks); box-shadow: 0 0 0 3px var(--pks-light); }
-.pin-input {
-  font-family: var(--mono) !important;
-  font-size: 28px !important; text-align: center;
-  letter-spacing: 8px; font-weight: 500;
-}
 .btn {
   display: block; width: 100%;
   padding: 14px 20px; border: none; border-radius: var(--radius-sm);
@@ -108,31 +103,11 @@ body {
 .btn:active { transform: scale(.98); }
 .btn-primary { background: var(--pks); color: #fff; }
 .btn-primary:hover { background: var(--pks-dark); }
-.btn-primary:disabled { background: var(--text-3); cursor: not-allowed; }
 .btn-success { background: var(--accent); color: #fff; }
 .btn-success:hover { background: var(--accent-dark); }
 .btn-outline { background: transparent; color: var(--pks); border: 1.5px solid var(--pks); }
 
-/* Login account buttons */
-.account-grid { display: grid; grid-template-columns: 1fr; gap: 8px; padding: 8px 16px; }
-.account-btn {
-  padding: 16px; background: var(--bg-card);
-  border: 1.5px solid var(--border); border-radius: var(--radius);
-  font-family: var(--font); font-size: 15px; font-weight: 500;
-  cursor: pointer; text-align: left; transition: all .15s;
-  display: flex; align-items: center; gap: 12px;
-  box-shadow: var(--shadow);
-}
-.account-btn:active { transform: scale(.98); }
-.account-btn .avatar {
-  width: 40px; height: 40px; border-radius: 50%;
-  background: var(--pks-light); color: var(--pks);
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 700; font-size: 16px; flex-shrink: 0;
-}
-.account-btn.selected { border-color: var(--pks); background: #F5F0FF; }
-
-/* Day warning banner */
+/* Day banner */
 .day-banner {
   margin: 16px; padding: 12px 16px;
   border-radius: var(--radius-sm); font-size: 13px; font-weight: 500;
@@ -243,8 +218,6 @@ body {
 .empty-state { text-align: center; padding: 40px 20px; color: var(--text-3); }
 .empty-state .icon { font-size: 40px; margin-bottom: 8px; }
 
-.divider { text-align: center; font-size: 11px; color: var(--text-3); padding: 12px 16px; font-weight: 500; }
-
 .tab-bar {
   display: flex; background: var(--bg-card);
   border-bottom: 1px solid var(--border);
@@ -267,34 +240,12 @@ body {
 </head>
 <body>
 
-<!-- ── SCREEN 1: Account Selection ──────────────────────────────────────────── -->
-<div id="screen-accounts" class="screen active">
-  <div class="top-bar">
-    <div>
-      <h1>PKS — Login</h1>
-      <div class="subtitle">Patroli Keamanan Sekolah</div>
-    </div>
-  </div>
-  <div class="section-label">Pilih Kelompok PKS</div>
-  <div id="account-list" class="account-grid">
-    <div class="empty-state"><div class="icon">⏳</div><div>Memuat data...</div></div>
-  </div>
-  <div class="content" id="pin-section" style="display:none">
-    <div class="input-group">
-      <label>Masukkan PIN</label>
-      <input type="password" id="pin-input" class="pin-input" inputmode="numeric" maxlength="6" placeholder="••••">
-    </div>
-    <button class="btn btn-primary" onclick="doLogin()">Masuk</button>
-    <div class="divider" id="selected-name-hint"></div>
-  </div>
-</div>
-
-<!-- ── SCREEN 2: Class List ─────────────────────────────────────────────────── -->
-<div id="screen-classes" class="screen">
+<!-- ── SCREEN 1: Class List ─────────────────────────────────────────────────── -->
+<div id="screen-classes" class="screen active">
   <div class="top-bar">
     <div>
       <h1 id="classes-title">Kelas Saya</h1>
-      <div class="subtitle" id="classes-subtitle">Kelompok PKS</div>
+      <div class="subtitle" id="classes-subtitle">PKS</div>
     </div>
     <button class="logout-btn" onclick="doLogout()">Keluar</button>
   </div>
@@ -327,7 +278,7 @@ body {
   </div>
 </div>
 
-<!-- ── SCREEN 3: Student Check ──────────────────────────────────────────────── -->
+<!-- ── SCREEN 2: Student Check ──────────────────────────────────────────────── -->
 <div id="screen-check" class="screen">
   <div class="top-bar">
     <button class="back-btn" onclick="goTo('classes')">←</button>
@@ -338,7 +289,6 @@ body {
   </div>
 
   <div class="content">
-    <!-- Summary chips -->
     <div class="card" style="padding:14px 20px">
       <div style="font-size:13px;font-weight:500;color:var(--text-2);margin-bottom:8px">Ringkasan Kehadiran</div>
       <div class="summary-chips" id="summary-chips">
@@ -350,7 +300,6 @@ body {
       </div>
     </div>
 
-    <!-- Notes -->
     <div class="input-group">
       <label>Catatan Patroli (opsional)</label>
       <input type="text" id="check-notes" placeholder="Contoh: Kelas kondusif, 2 siswa izin sakit">
@@ -360,132 +309,53 @@ body {
     </div>
   </div>
 
-  <!-- Student list -->
   <div style="padding:0 16px" id="student-list-wrap">
     <div class="card">
       <div id="student-list"></div>
     </div>
   </div>
 
-  <!-- Sticky submit -->
   <div class="sticky-submit">
     <button class="btn btn-success" id="submit-btn" onclick="submitCheck()">Simpan Presensi</button>
   </div>
 </div>
 
 <script>
-// ── State ───────────────────────────────────────────────────────────────────
+// ── Session check ──────────────────────────────────────────────────────────
 let session = null;
-let currentClassId = null;
-let currentStudents = [];
+try {
+  session = JSON.parse(sessionStorage.getItem('hadir_auth') || 'null');
+} catch (e) {}
+
+if (!session || session.role !== 'pks') {
+  window.location.replace('/');
+}
+
+const STAFF_ID = session ? session.staffId : null;
 const DAYS = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
 
-// ── Init ────────────────────────────────────────────────────────────────────
-(function init() {
-  try {
-    const raw = sessionStorage.getItem('hadir_auth');
-    if (raw) {
-      const s = JSON.parse(raw);
-      if (s.role === 'pks') {
-        session = s;
-        enterApp();
-        return;
-      }
-    }
-  } catch(e) { sessionStorage.removeItem('hadir_auth'); }
+let currentClassId = null;
 
-  loadAccounts();
-})();
-
-async function loadAccounts() {
-  try {
-    const r = await fetch('/pks/accounts');
-    const accounts = await r.json();
-    const el = document.getElementById('account-list');
-    if (!accounts.length) {
-      el.innerHTML = '<div class="empty-state"><div class="icon">⚠</div><div>Tidak ada akun PKS terdaftar</div></div>';
-      return;
-    }
-    el.innerHTML = accounts.map(a => `
-      <button class="account-btn" onclick="selectAccount(${a.pks_id},'${escHtml(a.username)}','${escHtml(a.name)}',this)">
-        <div class="avatar">${a.group_number}</div>
-        <div>
-          <div style="font-weight:600">${escHtml(a.name)}</div>
-          <div style="font-size:12px;color:var(--text-3);margin-top:2px">Kelompok ${a.group_number} · @${escHtml(a.username)}</div>
-        </div>
-      </button>`).join('');
-  } catch(e) {
-    document.getElementById('account-list').innerHTML =
-      '<div class="empty-state"><div class="icon">⚠</div><div>Tidak dapat terhubung ke server</div></div>';
-  }
-}
-
-let selectedAccountUsername = '';
-let selectedAccountId = null;
-
-function selectAccount(id, username, name, btn) {
-  selectedAccountId = id;
-  selectedAccountUsername = username;
-  document.querySelectorAll('.account-btn').forEach(b => b.classList.remove('selected'));
-  btn.classList.add('selected');
-  document.getElementById('pin-section').style.display = 'block';
-  document.getElementById('selected-name-hint').textContent = `Masuk sebagai: ${name}`;
-  document.getElementById('pin-input').focus();
-}
-
-async function doLogin() {
-  const pin = document.getElementById('pin-input').value;
-  if (!pin) return toast('Masukkan PIN');
-  if (!selectedAccountUsername) return toast('Pilih akun terlebih dahulu');
-
-  try {
-    const r = await fetch('/pks/login', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({username: selectedAccountUsername, pin}),
-    });
-    if (!r.ok) {
-      const err = await r.json().catch(() => ({detail:'PIN salah'}));
-      return toast(err.detail || 'PIN salah');
-    }
-    const data = await r.json();
-    session = data;
-    sessionStorage.setItem('hadir_auth', JSON.stringify(data));
-    enterApp();
-  } catch(e) { toast('Gagal terhubung ke server'); }
-}
+// ── Init ──────────────────────────────────────────────────────────────────
+document.getElementById('classes-title').textContent = session ? session.name : 'PKS';
+document.getElementById('classes-subtitle').textContent = 'Patroli Keamanan Sekolah';
+showDayBanner();
+loadClasses();
 
 function doLogout() {
   sessionStorage.removeItem('hadir_auth');
-  session = null;
-  selectedAccountId = null;
-  selectedAccountUsername = '';
-  document.getElementById('pin-input').value = '';
-  document.getElementById('pin-section').style.display = 'none';
-  document.querySelectorAll('.account-btn').forEach(b => b.classList.remove('selected'));
-  loadAccounts();
-  goTo('accounts');
-}
-
-// ── App ──────────────────────────────────────────────────────────────────────
-function enterApp() {
-  document.getElementById('classes-title').textContent = session.name;
-  document.getElementById('classes-subtitle').textContent = `Kelompok ${session.group_number} · PKS`;
-  goTo('classes');
-  loadClasses();
-  showDayBanner();
+  window.location.replace('/');
 }
 
 function showDayBanner() {
-  const now = new Date();
-  const day = now.getDay(); // 0=Sun, 1=Mon
+  const day = new Date().getDay(); // 0=Sun, 1=Mon
   const dayName = DAYS[day];
   const banner = document.getElementById('day-banner');
   if (day === 1) {
     banner.innerHTML = `<span>✅</span> Hari <strong>Senin</strong> — Jadwal patroli aktif`;
     banner.className = 'day-banner monday';
   } else {
-    banner.innerHTML = `<span>⚠️</span> Hari ini <strong>${dayName}</strong>. Patroli dijadwalkan setiap <strong>Senin</strong>`;
+    banner.innerHTML = `<span>⚠️</span> Hari ini <strong>${dayName}</strong>. Patroli dijadwalkan setiap <strong>Senin</strong> (login tetap diperbolehkan)`;
     banner.className = 'day-banner not-monday';
   }
 }
@@ -495,7 +365,11 @@ async function loadClasses() {
   document.getElementById('class-list-xi').innerHTML = '';
 
   try {
-    const r = await fetch(`/pks/my-classes?pks_id=${session.pks_id}`);
+    const r = await fetch(`/pks/my-classes?staff_id=${STAFF_ID}`);
+    if (!r.ok) {
+      document.getElementById('class-list-x').innerHTML = '<div class="empty-state"><div class="icon">⚠</div><div>Akun tidak memiliki kelas patroli</div></div>';
+      return;
+    }
     const classes = await r.json();
 
     const xClasses = classes.filter(c => c.grade_level === 10);
@@ -504,9 +378,8 @@ async function loadClasses() {
     const done = classes.filter(c => c.checked_today).length;
     const total = classes.length;
 
-    // Progress
     const pSec = document.getElementById('progress-section');
-    pSec.style.display = 'block';
+    pSec.style.display = total ? 'block' : 'none';
     document.getElementById('progress-fill').style.width = total ? `${(done/total)*100}%` : '0%';
     document.getElementById('progress-text').textContent = `${done} dari ${total} kelas sudah dipatroli hari ini`;
 
@@ -541,7 +414,7 @@ async function openClass(classId, className) {
   goTo('check');
 
   try {
-    const r = await fetch(`/pks/class/${classId}/students?pks_id=${session.pks_id}`);
+    const r = await fetch(`/pks/class/${classId}/students?staff_id=${STAFF_ID}`);
     const data = await r.json();
 
     if (data.already_checked) {
@@ -549,7 +422,6 @@ async function openClass(classId, className) {
       document.getElementById('check-notes').value = data.notes || '';
     }
 
-    currentStudents = data.students;
     renderStudents(data.students);
     updateSummary();
   } catch(e) {
@@ -581,8 +453,7 @@ function renderStudents(students) {
 }
 
 function onStatusChange(sel) {
-  const oldClass = ['hadir','tidak_hadir','izin','sakit','alpa'].find(s => sel.classList.contains(s));
-  if (oldClass) sel.classList.remove(oldClass);
+  ['hadir','tidak_hadir','izin','sakit','alpa'].forEach(s => sel.classList.remove(s));
   sel.classList.add(sel.value);
   updateSummary();
 }
@@ -623,7 +494,7 @@ async function submitCheck() {
   btn.textContent = 'Menyimpan...';
 
   try {
-    const r = await fetch(`/pks/check?pks_id=${session.pks_id}`, {
+    const r = await fetch(`/pks/check?staff_id=${STAFF_ID}`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({class_id: currentClassId, notes, students}),
@@ -645,13 +516,12 @@ async function submitCheck() {
   }
 }
 
-// ── History ───────────────────────────────────────────────────────────────────
 async function loadHistory() {
   const el = document.getElementById('history-list');
   el.innerHTML = '<div class="empty-state"><div class="icon">⏳</div><div>Memuat...</div></div>';
 
   try {
-    const r = await fetch(`/pks/history?pks_id=${session.pks_id}`);
+    const r = await fetch(`/pks/history?staff_id=${STAFF_ID}`);
     const history = await r.json();
 
     if (!history.length) {
@@ -682,7 +552,6 @@ async function loadHistory() {
   }
 }
 
-// ── Tabs ──────────────────────────────────────────────────────────────────────
 function switchTab(tab) {
   document.getElementById('tab-content-classes').style.display = tab === 'classes' ? 'block' : 'none';
   document.getElementById('tab-content-history').style.display = tab === 'history' ? 'block' : 'none';
@@ -691,14 +560,12 @@ function switchTab(tab) {
   if (tab === 'history') loadHistory();
 }
 
-// ── Navigation ────────────────────────────────────────────────────────────────
 function goTo(screen) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-' + screen).classList.add('active');
   window.scrollTo(0, 0);
 }
 
-// ── Utils ─────────────────────────────────────────────────────────────────────
 function toast(msg, dur=3000) {
   const t = document.createElement('div'); t.className='toast'; t.textContent=msg;
   document.body.appendChild(t); setTimeout(() => t.remove(), dur);
@@ -707,13 +574,6 @@ function toast(msg, dur=3000) {
 function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-
-document.addEventListener('keydown', e => {
-  if (e.key === 'Enter') {
-    const screen = document.querySelector('.screen.active');
-    if (screen && screen.id === 'screen-accounts') doLogin();
-  }
-});
 </script>
 </body>
 </html>

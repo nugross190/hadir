@@ -72,8 +72,8 @@ def add_staff(
 ):
     if owner_pin != OWNER_PIN:
         raise HTTPException(status_code=403, detail="Akses ditolak")
-    if req.role not in ("admin", "headmaster"):
-        raise HTTPException(status_code=400, detail="Role harus admin atau headmaster")
+    if req.role not in ("admin", "headmaster", "pks"):
+        raise HTTPException(status_code=400, detail="Role harus admin, headmaster, atau pks")
     existing = db.query(Staff).filter(Staff.name == req.name).first()
     if existing:
         return {"status": "already exists", "staff_id": existing.id, "name": existing.name, "role": existing.role}

@@ -263,24 +263,24 @@ def seed_database(db: Session = Depends(get_db)):
                     ))
         db.commit()
 
-    # Seed PKS accounts + class assignments
-    # 4 groups, each covering 3 classes from grade X and 3 from grade XI
-    from models.pks import PKSAccount, PKSClassAssignment
+    # Seed PKS staff + class assignments
+    # 4 groups, each covering 6 classes from one grade tier
+    from models.pks import PKSClassAssignment
     pks_groups = [
-        ("PKS Kelompok 1", "pks1", "1001", 1, ["X - A","X - B","X - C","X - D","X - E","X - F"]),
-        ("PKS Kelompok 2", "pks2", "2002", 2, ["X - G","X - H","X - I","X - J","X - K","X - L"]),
-        ("PKS Kelompok 3", "pks3", "3003", 3, ["XI - A","XI - B","XI - C","XI - D","XI - E","XI - F"]),
-        ("PKS Kelompok 4", "pks4", "4004", 4, ["XI - G","XI - H","XI - I","XI - J","XI - K","XI - L"]),
+        ("PKS Kelompok 1", "1001", ["X - A","X - B","X - C","X - D","X - E","X - F"]),
+        ("PKS Kelompok 2", "2002", ["X - G","X - H","X - I","X - J","X - K","X - L"]),
+        ("PKS Kelompok 3", "3003", ["XI - A","XI - B","XI - C","XI - D","XI - E","XI - F"]),
+        ("PKS Kelompok 4", "4004", ["XI - G","XI - H","XI - I","XI - J","XI - K","XI - L"]),
     ]
     classes_map_fresh = {c.name: c.id for c in db.query(Class).all()}
-    for name, username, pin, group, class_names in pks_groups:
-        pks = PKSAccount(name=name, username=username, pin_hash=bcrypt.hash(pin), group_number=group)
-        db.add(pks)
+    for name, pin, class_names in pks_groups:
+        pks_staff = Staff(name=name, pin_hash=bcrypt.hash(pin), role="pks")
+        db.add(pks_staff)
         db.flush()
         for cname in class_names:
             cid = classes_map_fresh.get(cname)
             if cid:
-                db.add(PKSClassAssignment(pks_id=pks.id, class_id=cid))
+                db.add(PKSClassAssignment(staff_id=pks_staff.id, class_id=cid))
     db.commit()
 
     return {
@@ -290,49 +290,62 @@ def seed_database(db: Session = Depends(get_db)):
         "classes": db.query(Class).count(),
         "schedule_slots": db.query(ScheduleSlot).count(),
         "students": db.query(Student).count(),
-        "pks_accounts": db.query(PKSAccount).count(),
+        "pks_assignments": db.query(PKSClassAssignment).count(),
     }
 
 
 @app.post("/seed-pks")
 def seed_pks(db: Session = Depends(get_db)):
     """
-    Seed PKS accounts and class assignments independently.
-    Safe to call on an already-seeded database.
-    Call this if the main /seed was run before the PKS feature was added.
+    Seed PKS staff and class assignments. Idempotent.
+
+    Drops old-schema PKS tables (pks_accounts) and any pre-existing PKS
+    rows so the new staff-based schema is applied cleanly. Call this once
+    after deploying the PKS-as-Staff refactor.
     """
     from passlib.hash import bcrypt
-    from models.pks import PKSAccount, PKSClassAssignment
+    from sqlalchemy import text
+    from models.pks import PKSClassAssignment
 
-    if db.query(PKSAccount).count() > 0:
-        return {
-            "status": "already seeded",
-            "pks_accounts": db.query(PKSAccount).count(),
-        }
+    # Drop tables from any prior PKS schema variant, then recreate.
+    # CASCADE handles FK from pks_attendance_checks/pks_student_checks.
+    for tbl in ("pks_student_checks", "pks_attendance_checks", "pks_class_assignments", "pks_accounts"):
+        try:
+            db.execute(text(f"DROP TABLE IF EXISTS {tbl} CASCADE"))
+            db.commit()
+        except Exception:
+            db.rollback()
+
+    # Recreate the new-schema PKS tables
+    Base.metadata.create_all(bind=engine)
+
+    # Remove any previously-seeded PKS staff so this is idempotent
+    db.query(Staff).filter(Staff.role == "pks").delete()
+    db.commit()
 
     classes_map = {c.name: c.id for c in db.query(Class).all()}
     if not classes_map:
         return {"status": "error", "detail": "No classes found — run /seed first"}
 
     pks_groups = [
-        ("PKS Kelompok 1", "pks1", "1001", 1, ["X - A","X - B","X - C","X - D","X - E","X - F"]),
-        ("PKS Kelompok 2", "pks2", "2002", 2, ["X - G","X - H","X - I","X - J","X - K","X - L"]),
-        ("PKS Kelompok 3", "pks3", "3003", 3, ["XI - A","XI - B","XI - C","XI - D","XI - E","XI - F"]),
-        ("PKS Kelompok 4", "pks4", "4004", 4, ["XI - G","XI - H","XI - I","XI - J","XI - K","XI - L"]),
+        ("PKS Kelompok 1", "1001", ["X - A","X - B","X - C","X - D","X - E","X - F"]),
+        ("PKS Kelompok 2", "2002", ["X - G","X - H","X - I","X - J","X - K","X - L"]),
+        ("PKS Kelompok 3", "3003", ["XI - A","XI - B","XI - C","XI - D","XI - E","XI - F"]),
+        ("PKS Kelompok 4", "4004", ["XI - G","XI - H","XI - I","XI - J","XI - K","XI - L"]),
     ]
 
-    for name, username, pin, group, class_names in pks_groups:
-        pks = PKSAccount(name=name, username=username, pin_hash=bcrypt.hash(pin), group_number=group)
-        db.add(pks)
+    for name, pin, class_names in pks_groups:
+        pks_staff = Staff(name=name, pin_hash=bcrypt.hash(pin), role="pks")
+        db.add(pks_staff)
         db.flush()
         for cname in class_names:
             cid = classes_map.get(cname)
             if cid:
-                db.add(PKSClassAssignment(pks_id=pks.id, class_id=cid))
+                db.add(PKSClassAssignment(staff_id=pks_staff.id, class_id=cid))
     db.commit()
 
     return {
         "status": "seeded",
-        "pks_accounts": db.query(PKSAccount).count(),
+        "pks_staff": db.query(Staff).filter(Staff.role == "pks").count(),
         "assignments": db.query(PKSClassAssignment).count(),
     }
