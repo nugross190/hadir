@@ -36,6 +36,7 @@ from routers.reports import router as reports_router
 from routers.dashboard import router as dashboard_router
 from routers.students import router as students_router
 from routers.approval import router as approval_router
+from routers.pks import router as pks_router
 
 FRONTEND_DIR = Path(__file__).resolve().parent / "frontend"
 
@@ -71,6 +72,7 @@ app.include_router(reports_router)
 app.include_router(dashboard_router)
 app.include_router(students_router)
 app.include_router(approval_router)
+app.include_router(pks_router)
 
 
 # ── Core Endpoints ──────────────────────────────────────────────────────────
@@ -109,6 +111,12 @@ def dashboard_page():
 def panel_page():
     """Serve the owner admin panel."""
     return FileResponse(FRONTEND_DIR / "panel.html")
+
+
+@app.get("/pks-patrol")
+def pks_page():
+    """Serve the PKS (Student Security Patrol) attendance check page."""
+    return FileResponse(FRONTEND_DIR / "pks.html")
 
 
 @app.get("/api")
@@ -202,6 +210,7 @@ def seed_database(db: Session = Depends(get_db)):
         db.add(Staff(name=s[0], pin_hash=bcrypt.hash(s[1]), role=s[2]))
     db.commit()
 
+
     # Seed teachers
     with open(seed_dir / "teachers.json", encoding="utf-8") as f:
         for t in json.load(f):
@@ -254,6 +263,26 @@ def seed_database(db: Session = Depends(get_db)):
                     ))
         db.commit()
 
+    # Seed PKS accounts + class assignments
+    # 4 groups, each covering 3 classes from grade X and 3 from grade XI
+    from models.pks import PKSAccount, PKSClassAssignment
+    pks_groups = [
+        ("PKS Kelompok 1", "pks1", "1001", 1, ["X - A","X - B","X - C","XI - A","XI - B","XI - C"]),
+        ("PKS Kelompok 2", "pks2", "2002", 2, ["X - D","X - E","X - F","XI - D","XI - E","XI - F"]),
+        ("PKS Kelompok 3", "pks3", "3003", 3, ["X - G","X - H","X - I","XI - G","XI - H","XI - I"]),
+        ("PKS Kelompok 4", "pks4", "4004", 4, ["X - J","X - K","X - L","XI - J","XI - K","XI - L"]),
+    ]
+    classes_map_fresh = {c.name: c.id for c in db.query(Class).all()}
+    for name, username, pin, group, class_names in pks_groups:
+        pks = PKSAccount(name=name, username=username, pin_hash=bcrypt.hash(pin), group_number=group)
+        db.add(pks)
+        db.flush()
+        for cname in class_names:
+            cid = classes_map_fresh.get(cname)
+            if cid:
+                db.add(PKSClassAssignment(pks_id=pks.id, class_id=cid))
+    db.commit()
+
     return {
         "status": "seeded",
         "staff": db.query(Staff).count(),
@@ -261,4 +290,49 @@ def seed_database(db: Session = Depends(get_db)):
         "classes": db.query(Class).count(),
         "schedule_slots": db.query(ScheduleSlot).count(),
         "students": db.query(Student).count(),
+        "pks_accounts": db.query(PKSAccount).count(),
+    }
+
+
+@app.post("/seed-pks")
+def seed_pks(db: Session = Depends(get_db)):
+    """
+    Seed PKS accounts and class assignments independently.
+    Safe to call on an already-seeded database.
+    Call this if the main /seed was run before the PKS feature was added.
+    """
+    from passlib.hash import bcrypt
+    from models.pks import PKSAccount, PKSClassAssignment
+
+    if db.query(PKSAccount).count() > 0:
+        return {
+            "status": "already seeded",
+            "pks_accounts": db.query(PKSAccount).count(),
+        }
+
+    classes_map = {c.name: c.id for c in db.query(Class).all()}
+    if not classes_map:
+        return {"status": "error", "detail": "No classes found — run /seed first"}
+
+    pks_groups = [
+        ("PKS Kelompok 1", "pks1", "1001", 1, ["X - A","X - B","X - C","XI - A","XI - B","XI - C"]),
+        ("PKS Kelompok 2", "pks2", "2002", 2, ["X - D","X - E","X - F","XI - D","XI - E","XI - F"]),
+        ("PKS Kelompok 3", "pks3", "3003", 3, ["X - G","X - H","X - I","XI - G","XI - H","XI - I"]),
+        ("PKS Kelompok 4", "pks4", "4004", 4, ["X - J","X - K","X - L","XI - J","XI - K","XI - L"]),
+    ]
+
+    for name, username, pin, group, class_names in pks_groups:
+        pks = PKSAccount(name=name, username=username, pin_hash=bcrypt.hash(pin), group_number=group)
+        db.add(pks)
+        db.flush()
+        for cname in class_names:
+            cid = classes_map.get(cname)
+            if cid:
+                db.add(PKSClassAssignment(pks_id=pks.id, class_id=cid))
+    db.commit()
+
+    return {
+        "status": "seeded",
+        "pks_accounts": db.query(PKSAccount).count(),
+        "assignments": db.query(PKSClassAssignment).count(),
     }

@@ -19,6 +19,7 @@ from models.attendance import (
 )
 
 from models.approval import DailyApproval
+from models.pks import PKSAccount, PKSClassAssignment, PKSAttendanceCheck, PKSStudentCheck
 
 __all__ = [
     "Staff",
@@ -32,4 +33,8 @@ __all__ = [
     "TeacherAttendanceRecord",
     "StudentAttendanceRecord",
     "DailyApproval",
+    "PKSAccount",
+    "PKSClassAssignment",
+    "PKSAttendanceCheck",
+    "PKSStudentCheck",
 ]
