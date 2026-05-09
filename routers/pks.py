@@ -3,12 +3,14 @@ routers/pks.py
 --------------
 PKS (Student Security Patrol) endpoints.
 
-POST /pks/login                     — PKS username + PIN login
-GET  /pks/accounts                  — list all active PKS accounts (for login screen)
-GET  /pks/my-classes                — classes assigned to a PKS account
+PKS users log in via the standard /auth/login flow (role='pks'),
+so there's no PKS-specific login endpoint here — only the
+patrol/check operations once they're authenticated.
+
+GET  /pks/my-classes                — classes assigned to a PKS staff
 GET  /pks/class/{class_id}/students — students in a class + existing check data
 POST /pks/check                     — submit a patrol attendance check
-GET  /pks/history                   — past check history for a PKS account
+GET  /pks/history                   — past check history for a PKS staff
 """
 
 from datetime import date, datetime
@@ -17,10 +19,10 @@ from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from passlib.hash import bcrypt
 
 from database import get_db
-from models.pks import PKSAccount, PKSClassAssignment, PKSAttendanceCheck, PKSStudentCheck
+from models import Staff
+from models.pks import PKSClassAssignment, PKSAttendanceCheck, PKSStudentCheck
 from models.school import Student
 
 router = APIRouter(prefix="/pks", tags=["pks"])
@@ -29,11 +31,6 @@ VALID_STATUSES = {"hadir", "tidak_hadir", "izin", "sakit", "alpa"}
 
 
 # ── Request Schemas ────────────────────────────────────────────────────────────
-
-class PKSLoginRequest(BaseModel):
-    username: str
-    pin: str
-
 
 class StudentCheckItem(BaseModel):
     student_id: int
@@ -47,55 +44,22 @@ class PKSCheckRequest(BaseModel):
     students: List[StudentCheckItem]
 
 
+def _ensure_pks(db: Session, staff_id: int) -> Staff:
+    staff = db.query(Staff).filter(Staff.id == staff_id, Staff.is_active == True).first()
+    if not staff or staff.role != "pks":
+        raise HTTPException(status_code=403, detail="Akun bukan PKS")
+    return staff
+
+
 # ── Endpoints ──────────────────────────────────────────────────────────────────
 
-@router.post("/login")
-def pks_login(req: PKSLoginRequest, db: Session = Depends(get_db)):
-    account = db.query(PKSAccount).filter(
-        PKSAccount.username == req.username,
-        PKSAccount.is_active == True,
-    ).first()
-
-    if not account or not bcrypt.verify(req.pin, account.pin_hash):
-        raise HTTPException(status_code=401, detail="Username atau PIN salah")
-
-    return {
-        "pks_id": account.id,
-        "name": account.name,
-        "username": account.username,
-        "group_number": account.group_number,
-        "role": "pks",
-    }
-
-
-@router.get("/accounts")
-def list_pks_accounts(db: Session = Depends(get_db)):
-    accounts = (
-        db.query(PKSAccount)
-        .filter(PKSAccount.is_active == True)
-        .order_by(PKSAccount.group_number)
-        .all()
-    )
-    return [
-        {
-            "pks_id": a.id,
-            "name": a.name,
-            "username": a.username,
-            "group_number": a.group_number,
-        }
-        for a in accounts
-    ]
-
-
 @router.get("/my-classes")
-def get_my_classes(pks_id: int = Query(...), db: Session = Depends(get_db)):
-    account = db.query(PKSAccount).filter(PKSAccount.id == pks_id).first()
-    if not account:
-        raise HTTPException(status_code=404, detail="Akun PKS tidak ditemukan")
+def get_my_classes(staff_id: int = Query(...), db: Session = Depends(get_db)):
+    _ensure_pks(db, staff_id)
 
     assignments = (
         db.query(PKSClassAssignment)
-        .filter(PKSClassAssignment.pks_id == pks_id)
+        .filter(PKSClassAssignment.staff_id == staff_id)
         .all()
     )
 
@@ -103,7 +67,7 @@ def get_my_classes(pks_id: int = Query(...), db: Session = Depends(get_db)):
     result = []
     for a in assignments:
         check = db.query(PKSAttendanceCheck).filter(
-            PKSAttendanceCheck.pks_id == pks_id,
+            PKSAttendanceCheck.staff_id == staff_id,
             PKSAttendanceCheck.class_id == a.class_id,
             PKSAttendanceCheck.check_date == today,
         ).first()
@@ -130,12 +94,14 @@ def get_my_classes(pks_id: int = Query(...), db: Session = Depends(get_db)):
 @router.get("/class/{class_id}/students")
 def get_class_students(
     class_id: int,
-    pks_id: int = Query(...),
+    staff_id: int = Query(...),
     check_date: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ):
+    _ensure_pks(db, staff_id)
+
     assignment = db.query(PKSClassAssignment).filter(
-        PKSClassAssignment.pks_id == pks_id,
+        PKSClassAssignment.staff_id == staff_id,
         PKSClassAssignment.class_id == class_id,
     ).first()
     if not assignment:
@@ -151,7 +117,7 @@ def get_class_students(
     )
 
     check = db.query(PKSAttendanceCheck).filter(
-        PKSAttendanceCheck.pks_id == pks_id,
+        PKSAttendanceCheck.staff_id == staff_id,
         PKSAttendanceCheck.class_id == class_id,
         PKSAttendanceCheck.check_date == target_date,
     ).first()
@@ -184,11 +150,13 @@ def get_class_students(
 @router.post("/check")
 def submit_check(
     req: PKSCheckRequest,
-    pks_id: int = Query(...),
+    staff_id: int = Query(...),
     db: Session = Depends(get_db),
 ):
+    _ensure_pks(db, staff_id)
+
     assignment = db.query(PKSClassAssignment).filter(
-        PKSClassAssignment.pks_id == pks_id,
+        PKSClassAssignment.staff_id == staff_id,
         PKSClassAssignment.class_id == req.class_id,
     ).first()
     if not assignment:
@@ -202,7 +170,7 @@ def submit_check(
     now = datetime.now()
 
     check = db.query(PKSAttendanceCheck).filter(
-        PKSAttendanceCheck.pks_id == pks_id,
+        PKSAttendanceCheck.staff_id == staff_id,
         PKSAttendanceCheck.class_id == req.class_id,
         PKSAttendanceCheck.check_date == today,
     ).first()
@@ -213,7 +181,7 @@ def submit_check(
         db.query(PKSStudentCheck).filter(PKSStudentCheck.check_id == check.id).delete()
     else:
         check = PKSAttendanceCheck(
-            pks_id=pks_id,
+            staff_id=staff_id,
             class_id=req.class_id,
             check_date=today,
             checked_at=now,
@@ -247,10 +215,12 @@ def submit_check(
 
 
 @router.get("/history")
-def get_check_history(pks_id: int = Query(...), db: Session = Depends(get_db)):
+def get_check_history(staff_id: int = Query(...), db: Session = Depends(get_db)):
+    _ensure_pks(db, staff_id)
+
     checks = (
         db.query(PKSAttendanceCheck)
-        .filter(PKSAttendanceCheck.pks_id == pks_id)
+        .filter(PKSAttendanceCheck.staff_id == staff_id)
         .order_by(PKSAttendanceCheck.check_date.desc(), PKSAttendanceCheck.checked_at.desc())
         .limit(100)
         .all()

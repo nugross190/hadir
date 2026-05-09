@@ -297,8 +297,8 @@ async function loadStaffList() {
   try {
     const r = await fetch('/auth/staff');
     const staff = await r.json();
-    const roleLabel = {admin: 'Admin', headmaster: 'Kepala Sekolah', owner: 'Administrator'};
-    const roleColor = {admin: 'ok', headmaster: 'ok', owner: 'ok'};
+    const roleLabel = {admin: 'Admin', headmaster: 'Kepala Sekolah', owner: 'Administrator', pks: 'PKS'};
+    const roleColor = {admin: 'ok', headmaster: 'ok', owner: 'ok', pks: 'ok'};
     document.getElementById('staff-list').innerHTML = staff.map(s => `
       <div class="info-row">
         <span class="label">${s.name}</span>
