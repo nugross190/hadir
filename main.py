@@ -267,10 +267,10 @@ def seed_database(db: Session = Depends(get_db)):
     # 4 groups, each covering 3 classes from grade X and 3 from grade XI
     from models.pks import PKSAccount, PKSClassAssignment
     pks_groups = [
-        ("PKS Kelompok 1", "pks1", "1001", 1, ["X - A","X - B","X - C","XI - A","XI - B","XI - C"]),
-        ("PKS Kelompok 2", "pks2", "2002", 2, ["X - D","X - E","X - F","XI - D","XI - E","XI - F"]),
-        ("PKS Kelompok 3", "pks3", "3003", 3, ["X - G","X - H","X - I","XI - G","XI - H","XI - I"]),
-        ("PKS Kelompok 4", "pks4", "4004", 4, ["X - J","X - K","X - L","XI - J","XI - K","XI - L"]),
+        ("PKS Kelompok 1", "pks1", "1001", 1, ["X - A","X - B","X - C","X - D","X - E","X - F"]),
+        ("PKS Kelompok 2", "pks2", "2002", 2, ["X - G","X - H","X - I","X - J","X - K","X - L"]),
+        ("PKS Kelompok 3", "pks3", "3003", 3, ["XI - A","XI - B","XI - C","XI - D","XI - E","XI - F"]),
+        ("PKS Kelompok 4", "pks4", "4004", 4, ["XI - G","XI - H","XI - I","XI - J","XI - K","XI - L"]),
     ]
     classes_map_fresh = {c.name: c.id for c in db.query(Class).all()}
     for name, username, pin, group, class_names in pks_groups:
@@ -315,10 +315,10 @@ def seed_pks(db: Session = Depends(get_db)):
         return {"status": "error", "detail": "No classes found — run /seed first"}
 
     pks_groups = [
-        ("PKS Kelompok 1", "pks1", "1001", 1, ["X - A","X - B","X - C","XI - A","XI - B","XI - C"]),
-        ("PKS Kelompok 2", "pks2", "2002", 2, ["X - D","X - E","X - F","XI - D","XI - E","XI - F"]),
-        ("PKS Kelompok 3", "pks3", "3003", 3, ["X - G","X - H","X - I","XI - G","XI - H","XI - I"]),
-        ("PKS Kelompok 4", "pks4", "4004", 4, ["X - J","X - K","X - L","XI - J","XI - K","XI - L"]),
+        ("PKS Kelompok 1", "pks1", "1001", 1, ["X - A","X - B","X - C","X - D","X - E","X - F"]),
+        ("PKS Kelompok 2", "pks2", "2002", 2, ["X - G","X - H","X - I","X - J","X - K","X - L"]),
+        ("PKS Kelompok 3", "pks3", "3003", 3, ["XI - A","XI - B","XI - C","XI - D","XI - E","XI - F"]),
+        ("PKS Kelompok 4", "pks4", "4004", 4, ["XI - G","XI - H","XI - I","XI - J","XI - K","XI - L"]),
     ]
 
     for name, username, pin, group, class_names in pks_groups:
