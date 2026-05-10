@@ -21,6 +21,7 @@ from models import (
     AttendanceSession, TeacherAttendanceRecord,
     StudentAttendanceRecord, RecordingSession, Staff,
 )
+from models.pks import PKSAttendanceCheck, PKSStudentCheck
 
 
 def teacher_attendance_summary(
@@ -230,3 +231,122 @@ def daily_recap(db: Session, target_date: date) -> list[dict]:
 
     results.sort(key=lambda r: (r["class_name"], r["period"]))
     return results
+
+
+def pks_flag_ceremony_day(db: Session, target_date: date) -> dict:
+    """
+    Detailed PKS flag-ceremony (Upacara Bendera) attendance for a single date.
+    PKS patrols run on Monday, so this is normally called for a Monday date.
+    Returns class groups with per-student status, plus per-class totals.
+    """
+    checks = (
+        db.query(PKSAttendanceCheck)
+        .filter(PKSAttendanceCheck.check_date == target_date)
+        .options(
+            joinedload(PKSAttendanceCheck.kelas),
+            joinedload(PKSAttendanceCheck.student_checks)
+            .joinedload(PKSStudentCheck.student),
+        )
+        .all()
+    )
+
+    classes_out = []
+    grand = {"hadir": 0, "tidak_hadir": 0, "izin": 0, "sakit": 0, "alpa": 0, "total": 0}
+
+    for c in checks:
+        rows = []
+        counts = {"hadir": 0, "tidak_hadir": 0, "izin": 0, "sakit": 0, "alpa": 0}
+        student_checks = sorted(
+            c.student_checks,
+            key=lambda sc: (sc.student.name if sc.student else ""),
+        )
+        for sc in student_checks:
+            if sc.status in counts:
+                counts[sc.status] += 1
+            rows.append({
+                "nis": sc.student.nis if sc.student else "",
+                "nama": sc.student.name if sc.student else "",
+                "gender": sc.student.gender if sc.student else "",
+                "status": sc.status,
+                "notes": sc.notes,
+            })
+        total = sum(counts.values())
+        for k, v in counts.items():
+            grand[k] += v
+        grand["total"] += total
+
+        classes_out.append({
+            "class_id": c.class_id,
+            "class_name": c.kelas.name if c.kelas else "",
+            "grade_level": c.kelas.grade_level if c.kelas else 0,
+            "checked_at": c.checked_at.isoformat() if c.checked_at else None,
+            "notes": c.notes,
+            "students": rows,
+            "totals": {**counts, "total": total},
+        })
+
+    classes_out.sort(key=lambda x: (x["grade_level"], x["class_name"]))
+
+    return {
+        "date": target_date.isoformat(),
+        "weekday": target_date.strftime("%A"),
+        "classes": classes_out,
+        "grand_totals": grand,
+    }
+
+
+def pks_flag_ceremony_summary(
+    db: Session, date_from: date, date_to: date
+) -> dict:
+    """
+    PKS flag-ceremony summary across a date range, restricted to Mondays
+    (Python weekday() == 0). Aggregated per class.
+    """
+    checks = (
+        db.query(PKSAttendanceCheck)
+        .filter(
+            PKSAttendanceCheck.check_date >= date_from,
+            PKSAttendanceCheck.check_date <= date_to,
+        )
+        .options(
+            joinedload(PKSAttendanceCheck.kelas),
+            joinedload(PKSAttendanceCheck.student_checks),
+        )
+        .all()
+    )
+
+    # Restrict to Mondays only
+    checks = [c for c in checks if c.check_date and c.check_date.weekday() == 0]
+
+    monday_dates = sorted({c.check_date for c in checks})
+
+    per_class = {}
+    for c in checks:
+        key = c.class_id
+        if key not in per_class:
+            per_class[key] = {
+                "class_id": c.class_id,
+                "class_name": c.kelas.name if c.kelas else "",
+                "grade_level": c.kelas.grade_level if c.kelas else 0,
+                "mondays_checked": 0,
+                "hadir": 0,
+                "tidak_hadir": 0,
+                "izin": 0,
+                "sakit": 0,
+                "alpa": 0,
+                "total": 0,
+            }
+        per_class[key]["mondays_checked"] += 1
+        for sc in c.student_checks:
+            if sc.status in per_class[key]:
+                per_class[key][sc.status] += 1
+            per_class[key]["total"] += 1
+
+    rows = sorted(per_class.values(), key=lambda r: (r["grade_level"], r["class_name"]))
+
+    return {
+        "date_from": date_from.isoformat(),
+        "date_to": date_to.isoformat(),
+        "mondays": [d.isoformat() for d in monday_dates],
+        "classes": rows,
+    }

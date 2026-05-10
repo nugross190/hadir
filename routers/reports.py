@@ -25,6 +25,8 @@ from services.report_service import (
     student_attendance_summary,
     staff_accountability_report,
     daily_recap,
+    pks_flag_ceremony_day,
+    pks_flag_ceremony_summary,
 )
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -254,4 +256,169 @@ def export_daily_recap(
 
     auto_width(ws)
     filename = f"rekap_harian_{target_date}.xlsx"
+    return make_response(wb, filename)
+
+
+# ── 5. PKS Flag Ceremony — Current Day ──────────────────────────────────────
+
+_DAY_ID = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"]
+_STATUS_LABEL = {
+    "hadir": "Hadir",
+    "tidak_hadir": "Tidak Hadir",
+    "izin": "Izin",
+    "sakit": "Sakit",
+    "alpa": "Alpa",
+}
+
+
+@router.get("/pks-flag-today")
+def export_pks_flag_today(
+    target_date: date = Query(None, alias="date"),
+    db: Session = Depends(get_db),
+):
+    """
+    Download today's (or a specific Monday's) PKS flag ceremony
+    (Upacara Bendera) attendance — per-student detail, grouped by class.
+    Intended for admin use.
+    """
+    if target_date is None:
+        target_date = date.today()
+    data = pks_flag_ceremony_day(db, target_date)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Upacara Bendera"
+
+    is_monday = target_date.weekday() == 0
+    day_id = _DAY_ID[target_date.weekday()]
+
+    ws.merge_cells("A1:G1")
+    ws["A1"] = "Presensi Upacara Bendera (PKS) — SMAN 5 Garut"
+    ws["A1"].font = TITLE_FONT
+    ws["A2"] = (
+        f"Tanggal: {target_date} ({day_id})"
+        + ("" if is_monday else " — bukan hari Senin")
+    )
+    ws["A2"].font = SUBTITLE_FONT
+
+    row = 4
+    if not data["classes"]:
+        ws.cell(row=row, column=1, value="Belum ada data presensi PKS untuk tanggal ini.")
+        ws.cell(row=row, column=1).font = SUBTITLE_FONT
+    else:
+        # Grand-total summary
+        gt = data["grand_totals"]
+        ws.cell(row=row, column=1, value="Total Keseluruhan").font = Font(bold=True)
+        ws.cell(row=row, column=2, value=f"Hadir: {gt['hadir']}")
+        ws.cell(row=row, column=3, value=f"Tidak Hadir: {gt['tidak_hadir']}")
+        ws.cell(row=row, column=4, value=f"Izin: {gt['izin']}")
+        ws.cell(row=row, column=5, value=f"Sakit: {gt['sakit']}")
+        ws.cell(row=row, column=6, value=f"Alpa: {gt['alpa']}")
+        ws.cell(row=row, column=7, value=f"Total Siswa: {gt['total']}")
+        row += 2
+
+        headers = ["No", "NIS", "Nama Siswa", "L/P", "Status", "Catatan"]
+
+        for cls in data["classes"]:
+            ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=6)
+            checked_at = ""
+            if cls["checked_at"]:
+                checked_at = f" · Direkam {cls['checked_at'][11:16]}"
+            t = cls["totals"]
+            cell = ws.cell(
+                row=row, column=1,
+                value=(
+                    f"{cls['class_name']}  —  "
+                    f"Hadir {t['hadir']} | Tidak Hadir {t['tidak_hadir']} | "
+                    f"Izin {t['izin']} | Sakit {t['sakit']} | Alpa {t['alpa']} | "
+                    f"Total {t['total']}{checked_at}"
+                ),
+            )
+            cell.font = Font(bold=True, size=12, color="FFFFFF")
+            cell.fill = PatternFill(start_color="6B46C1", end_color="6B46C1", fill_type="solid")
+            cell.alignment = Alignment(horizontal="left", vertical="center")
+            row += 1
+
+            for col, h in enumerate(headers, 1):
+                ws.cell(row=row, column=col, value=h)
+            style_header_row(ws, row, len(headers))
+            row += 1
+
+            for i, s in enumerate(cls["students"], 1):
+                values = [
+                    i, s["nis"], s["nama"], s["gender"],
+                    _STATUS_LABEL.get(s["status"], s["status"]),
+                    s["notes"] or "",
+                ]
+                for col, v in enumerate(values, 1):
+                    cell = ws.cell(row=row, column=col, value=v)
+                    align = "left" if col in (3, 6) else "center"
+                    style_data_cell(cell, align)
+                row += 1
+
+            if cls.get("notes"):
+                ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=6)
+                note_cell = ws.cell(row=row, column=1, value=f"Catatan Patroli: {cls['notes']}")
+                note_cell.font = SUBTITLE_FONT
+                row += 1
+
+            row += 1  # spacer between classes
+
+    auto_width(ws)
+    filename = f"upacara_bendera_{target_date}.xlsx"
+    return make_response(wb, filename)
+
+
+# ── 6. PKS Flag Ceremony — Period Summary (Mondays only) ────────────────────
+
+@router.get("/pks-flag-monday")
+def export_pks_flag_monday_summary(
+    date_from: date = Query(..., alias="from"),
+    date_to: date = Query(..., alias="to"),
+    db: Session = Depends(get_db),
+):
+    """
+    Aggregated PKS flag-ceremony (Upacara Bendera) attendance per class,
+    counting only Monday check_dates within the given range.
+    """
+    data = pks_flag_ceremony_summary(db, date_from, date_to)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Rekap Upacara"
+
+    ws.merge_cells("A1:J1")
+    ws["A1"] = "Rekap Presensi Upacara Bendera (PKS) — SMAN 5 Garut"
+    ws["A1"].font = TITLE_FONT
+    ws["A2"] = (
+        f"Periode Senin: {date_from} s/d {date_to} — "
+        f"{len(data['mondays'])} hari Senin tercatat"
+    )
+    ws["A2"].font = SUBTITLE_FONT
+
+    headers = [
+        "No", "Kelas", "Tingkat", "Senin Tercatat",
+        "Hadir", "Tidak Hadir", "Izin", "Sakit", "Alpa", "Total",
+    ]
+    for col, h in enumerate(headers, 1):
+        ws.cell(row=4, column=col, value=h)
+    style_header_row(ws, 4, len(headers))
+
+    if not data["classes"]:
+        ws.cell(row=5, column=1, value="Tidak ada presensi PKS pada hari Senin di periode ini.")
+    else:
+        for i, c in enumerate(data["classes"], 1):
+            grade = {10: "X", 11: "XI", 12: "XII"}.get(c["grade_level"], str(c["grade_level"]))
+            row = i + 4
+            values = [
+                i, c["class_name"], grade, c["mondays_checked"],
+                c["hadir"], c["tidak_hadir"], c["izin"], c["sakit"], c["alpa"], c["total"],
+            ]
+            for col, v in enumerate(values, 1):
+                cell = ws.cell(row=row, column=col, value=v)
+                align = "left" if col == 2 else "center"
+                style_data_cell(cell, align)
+
+    auto_width(ws)
+    filename = f"rekap_upacara_bendera_{date_from}_{date_to}.xlsx"
     return make_response(wb, filename)
