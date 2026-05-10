@@ -539,6 +539,32 @@ body {
     <button class="btn btn-primary btn-sm" onclick="downloadReport('student')">Download Excel</button>
   </div>
 
+  <!-- PKS Flag Ceremony — Today (Monday) -->
+  <div class="report-card">
+    <div class="report-title">🏁 Presensi Upacara Bendera — Hari Ini</div>
+    <div class="report-desc">Unduh presensi upacara bendera (PKS) untuk hari ini. Idealnya diunduh pada hari Senin setelah patroli selesai.</div>
+    <button class="btn btn-primary btn-sm" onclick="downloadReport('pks-today')">Download Excel</button>
+  </div>
+
+  <!-- PKS Flag Ceremony — Monday Summary -->
+  <div class="report-card">
+    <div class="report-title">🏁 Rekap Upacara Bendera (Senin)</div>
+    <div class="report-desc">Rekap presensi upacara bendera per kelas, dihitung hanya untuk tanggal Senin dalam periode terpilih.</div>
+    <div class="report-fields">
+      <div class="report-row">
+        <div class="report-field">
+          <label>Dari</label>
+          <input type="date" id="rpt-pks-from">
+        </div>
+        <div class="report-field">
+          <label>Sampai</label>
+          <input type="date" id="rpt-pks-to">
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="downloadReport('pks-monday')">Download Excel</button>
+  </div>
+
   <!-- Staff Accountability -->
   <div class="report-card">
     <div class="report-title">🔐 Akuntabilitas Staff</div>
@@ -941,6 +967,8 @@ async function initReports() {
   document.getElementById('rpt-student-to').value = today;
   document.getElementById('rpt-staff-from').value = fom;
   document.getElementById('rpt-staff-to').value = today;
+  document.getElementById('rpt-pks-from').value = fom;
+  document.getElementById('rpt-pks-to').value = today;
 
   // Load classes for student report dropdown
   try {
@@ -984,6 +1012,17 @@ function downloadReport(type) {
       const to = document.getElementById('rpt-staff-to').value;
       if (!from || !to) return toast('Pilih periode');
       url = `/reports/staff-accountability?from=${from}&to=${to}`;
+      break;
+    }
+    case 'pks-today': {
+      url = `/reports/pks-flag-today?date=${todayStr()}`;
+      break;
+    }
+    case 'pks-monday': {
+      const from = document.getElementById('rpt-pks-from').value;
+      const to = document.getElementById('rpt-pks-to').value;
+      if (!from || !to) return toast('Pilih periode');
+      url = `/reports/pks-flag-monday?from=${from}&to=${to}`;
       break;
     }
   }
