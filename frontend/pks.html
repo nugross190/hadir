@@ -262,6 +262,14 @@ body {
       <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-fill" style="width:0%"></div></div>
       <div class="progress-text" id="progress-text"></div>
     </div>
+    <div style="padding:8px 16px 0;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-outline" onclick="downloadFlagToday()" style="flex:1;min-width:160px;font-size:13px;padding:10px">
+        ⬇ Unduh Presensi Upacara Hari Ini
+      </button>
+      <button class="btn btn-outline" onclick="openMondayReport()" style="flex:1;min-width:160px;font-size:13px;padding:10px">
+        📊 Rekap Upacara (Senin)
+      </button>
+    </div>
     <div class="section-label">Kelas X</div>
     <div id="class-list-x" style="padding:0 16px"></div>
     <div class="section-label">Kelas XI</div>
@@ -550,6 +558,37 @@ async function loadHistory() {
   } catch(e) {
     el.innerHTML = '<div class="empty-state"><div class="icon">⚠</div><div>Gagal memuat riwayat</div></div>';
   }
+}
+
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function downloadFlagToday() {
+  const d = todayStr();
+  const a = document.createElement('a');
+  a.href = `/reports/pks-flag-today?date=${d}`;
+  a.download = '';
+  a.click();
+  toast('Mengunduh presensi upacara hari ini...');
+}
+
+function openMondayReport() {
+  const to = todayStr();
+  // Default range: last 60 days back from today
+  const d = new Date();
+  d.setDate(d.getDate() - 60);
+  const from = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const fromIn = prompt('Tanggal mulai (YYYY-MM-DD):', from);
+  if (!fromIn) return;
+  const toIn = prompt('Tanggal akhir (YYYY-MM-DD):', to);
+  if (!toIn) return;
+  const a = document.createElement('a');
+  a.href = `/reports/pks-flag-monday?from=${fromIn}&to=${toIn}`;
+  a.download = '';
+  a.click();
+  toast('Mengunduh rekap upacara...');
 }
 
 function switchTab(tab) {
